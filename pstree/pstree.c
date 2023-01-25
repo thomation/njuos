@@ -4,7 +4,8 @@
 
 void travel_proc()
 {
-
+  Dir *proc = opendir("/proc");
+  assert(proc);
 }
 int main(int argc, char *argv[]) {
   for (int i = 0; i < argc; i++) {
