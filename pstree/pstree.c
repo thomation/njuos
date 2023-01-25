@@ -7,7 +7,7 @@ void travel_proc()
   DIR *proc = opendir("/proc");
   assert(proc);
   struct dirent * item = NULL;
-  while(item = readdir(dir))
+  while(item = readdir(proc))
   {
     printf("name:%s\n", item->d_name);
   }
