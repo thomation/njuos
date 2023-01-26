@@ -2,17 +2,13 @@
 #include <assert.h>
 #include <dirent.h>
 #include <string.h>
+#include "process.h"
 
 enum Option
 {
   NONE = 0x0,
   OPTION_N = 0x1,
   OPTION_P = 0x2,
-};
-struct ProcessInfo
-{
-  unsigned int id;
-  char comm[100];
 };
 
 enum Option parse_option(char * option)
@@ -50,7 +46,7 @@ int get_process_info(char * proc_dir, struct ProcessInfo * info)
   }
   return 0;
 }
-void travel_proc(unsigned int option)
+void travel_proc(unsigned int option, struct ProcessLink * process_link)
 {
   printf("travel_proc with option:%u\n", option);
   DIR *proc = opendir("/proc");
@@ -60,12 +56,12 @@ void travel_proc(unsigned int option)
   {
     if(is_proc_dir(item->d_name) && item->d_type == 4)
     {
-      struct ProcessInfo info;
-      sscanf(item->d_name, "%u", &info.id);
+      struct ProcessInfo *info = create_process_info(process_link);
+      sscanf(item->d_name, "%u", &info->id);
       char path[100] = "/proc/";
       strncat(path, item->d_name, 90);
-      get_process_info(path, &info);
-      printf("id:%u, comm:%s\n", info.id, info.comm);
+      get_process_info(path, info);
+      print_process_info(info);
     }
   }
   closedir(proc);
@@ -77,7 +73,9 @@ int main(int argc, char *argv[]) {
     option |= parse_option(argv[i]);
     printf("argv[%d] = %s\n", i, argv[i]);
   }
-  travel_proc(option);
   assert(!argv[argc]);
+  struct ProcessLink *process_link = create_process_link();
+  travel_proc(option, process_link);
+  destroy_process_link(process_link);
   return 0;
 }
