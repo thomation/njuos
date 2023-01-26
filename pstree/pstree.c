@@ -18,6 +18,17 @@ enum Option parse_option(char * option)
     printf("unsupport option %sn", option);
     return NONE;
 }
+int is_proc_dir(char * dir)
+{
+  char * p = dir;
+  while(*p != '\0')
+  {
+    if(*p < '0' || *p >'9')
+      return 0;
+    p ++;
+  }
+  return 1;
+}
 void travel_proc(unsigned int option)
 {
   printf("travel_proc with option:%u\n", option);
@@ -26,7 +37,8 @@ void travel_proc(unsigned int option)
   struct dirent * item = NULL;
   while((item = readdir(proc)))
   {
-    printf("name:%s\n", item->d_name);
+    if(is_proc_dir(item->d_name))
+      printf("name:%s\n", item->d_name);
   }
   closedir(proc);
 }
