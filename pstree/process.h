@@ -2,9 +2,10 @@
 #define __PROCESS_H__
 struct ProcessInfo
 {
-  unsigned int id;
+  int id;
   char comm[100];
-  unsigned int parent_id;
+  char state;
+  int parent_id;
   struct ProcessInfo * next;
 };
 struct ProcessLink

@@ -31,14 +31,14 @@ int is_proc_dir(char * dir)
   }
   return 1;
 }
-int get_process_info(char * proc_dir, struct ProcessInfo * info)
+int get_process_stat(char * proc_dir, struct ProcessInfo * info)
 {
   char filename[200];
   strncpy(filename, proc_dir, 200);
-  strncat(filename,"/comm", 100);
+  strncat(filename,"/stat", 100);
   FILE *fp = fopen(filename, "r");
   if (fp) {
-    fscanf(fp, "%s", info->comm);
+    fscanf(fp, "%d %s %c %d", &info->id, info->comm, &info->state, &info->parent_id);
     fclose(fp);
   } else {
     printf("Cannot open file: %s\n", filename);
@@ -57,10 +57,9 @@ void travel_proc(unsigned int option, struct ProcessLink * process_link)
     if(is_proc_dir(item->d_name) && item->d_type == 4)
     {
       struct ProcessInfo *info = create_process_info(process_link);
-      sscanf(item->d_name, "%u", &info->id);
       char path[100] = "/proc/";
       strncat(path, item->d_name, 90);
-      get_process_info(path, info);
+      get_process_stat(path, info);
       print_process_info(info);
     }
   }

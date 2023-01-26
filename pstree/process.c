@@ -18,6 +18,7 @@ struct ProcessInfo * create_process_info(struct ProcessLink * link)
     {
         info->id = -1;
         info->parent_id = -1;
+        info->state = 0;
         info->next = link->tail;
         link->tail = info;
     }
@@ -25,5 +26,5 @@ struct ProcessInfo * create_process_info(struct ProcessLink * link)
 }
 void print_process_info(struct ProcessInfo * info)
 {
-    printf("id:%u, comm:%s\n", info->id, info->comm);
+    printf("id:%d, comm:%s, state:%c, ppid:%d\n", info->id, info->comm, info->state, info->parent_id);
 }
