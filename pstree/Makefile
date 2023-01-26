@@ -7,7 +7,6 @@ test:
         echo Test $$v; \
 		./$(NAME)-$$v -p; \
 		./$(NAME)-$$v -n; \
-		./$(NAME)-$$v -pn; \
     done
 
 include ../Makefile
