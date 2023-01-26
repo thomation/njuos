@@ -37,7 +37,7 @@ void travel_proc(unsigned int option)
   struct dirent * item = NULL;
   while((item = readdir(proc)))
   {
-    if(is_proc_dir(item->d_name))
+    if(is_proc_dir(item->d_name) && item->d_type == 4)
       printf("name:%s\n", item->d_name);
   }
   closedir(proc);
