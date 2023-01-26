@@ -16,6 +16,7 @@ struct ProcessLink
 
 struct ProcessLink* create_process_link();
 void destroy_process_link(struct ProcessLink * link);
+void print_process_link(struct ProcessLink * link);
 struct ProcessInfo * create_process_info(struct ProcessLink* link);
 void print_process_info(struct ProcessInfo * info);
 #endif

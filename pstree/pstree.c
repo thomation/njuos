@@ -60,7 +60,6 @@ void travel_proc(unsigned int option, struct ProcessLink * process_link)
       char path[100] = "/proc/";
       strncat(path, item->d_name, 90);
       get_process_stat(path, info);
-      print_process_info(info);
     }
   }
   closedir(proc);
@@ -75,6 +74,7 @@ int main(int argc, char *argv[]) {
   assert(!argv[argc]);
   struct ProcessLink *process_link = create_process_link();
   travel_proc(option, process_link);
+  print_process_link(process_link);
   destroy_process_link(process_link);
   return 0;
 }
