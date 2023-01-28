@@ -13,5 +13,9 @@ void print_key() {
     puts("Key pressed: ");
     puts(key_names[event.keycode]);
     puts("\n");
+    if(event.keycode == AM_KEY_ESCAPE)
+    {
+      halt(0);
+    }
   }
 }
