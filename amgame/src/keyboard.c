@@ -6,7 +6,7 @@ static const char *key_names[] = {
   AM_KEYS(KEYNAME)
 };
 
-void print_key() {
+int print_key() {
   AM_INPUT_KEYBRD_T event = { .keycode = AM_KEY_NONE };
   ioe_read(AM_INPUT_KEYBRD, &event);
   if (event.keycode != AM_KEY_NONE && event.keydown) {
@@ -15,7 +15,8 @@ void print_key() {
     puts("\n");
     if(event.keycode == AM_KEY_ESCAPE)
     {
-      halt(0);
+      return 0;
     }
   }
+  return 1;
 }
