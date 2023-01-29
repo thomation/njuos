@@ -9,7 +9,9 @@ int main(const char *args) {
   puts("\"\n");
 
   splash();
-
+  int width = io_read(AM_GPU_CONFIG).width;
+  int height = io_read(AM_GPU_CONFIG).height;
+  printf("screen size = (%d, %d) %s\n", -width, height, "pixel");
   puts("Press any key to see its key code...\n");
   while (1) {
     if(!print_key())
