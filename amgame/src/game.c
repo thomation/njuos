@@ -11,24 +11,25 @@ void init_game()
 }
 void update(int key)
 {
+  printf("update from key: %d\n", key);
   switch (key)
   {
-  case AM_KEY_LEFT:
+  case AM_KEY_A:
     g_game.pos_x -= 0.1;
     if (g_game.pos_x < 0.0)
       g_game.pos_x = 0.0;
     break;
-  case AM_KEY_RIGHT:
+  case AM_KEY_D:
     g_game.pos_x += 0.1;
     if (g_game.pos_x > 1.0)
       g_game.pos_x = 1.0;
     break;
-  case AM_KEY_UP:
+  case AM_KEY_W:
     g_game.pos_y -= 0.1;
     if (g_game.pos_y < 0.0)
       g_game.pos_y = 0.0;
     break;
-  case AM_KEY_DOWN:
+  case AM_KEY_S:
     g_game.pos_y += 0.1;
     if (g_game.pos_y > 1.0)
       g_game.pos_y = 1.0;
