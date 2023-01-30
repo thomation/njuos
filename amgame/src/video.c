@@ -19,7 +19,7 @@ static void draw_tile(int x, int y, int w, int h, uint32_t color)
       .y = y,
       .w = w,
       .h = h,
-      .sync = 1,
+      .sync = 0,
       .pixels = pixels,
   };
   for (int i = 0; i < w * h; i++)
@@ -42,30 +42,26 @@ void splash()
       }
     }
   }
+  io_write(AM_GPU_FBDRAW, 0, 0, NULL, 0, 0, true);
 }
 void redraw()
 {
-  uint32_t pixels[w * h]; // WARNING: large stack-allocated memory
-  AM_GPU_FBDRAW_T event = {
-      .x = 0,
-      .y = 0,
-      .w = w,
-      .h = h,
-      .sync = 1,
-      .pixels = pixels,
-  };
-  for (int x = 0; x < w; x++)
+  init();
+  for (int x = 0; x * SIDE <= w; x++)
   {
-    for (int y = 0; y < h; y++)
+    for (int y = 0; y * SIDE <= h; y++)
     {
-      int i = x + y * w;
-      float x1 = x * 1.0 / w;
-      float y1 = y * 1.0 / h;
+      float x1 = x * SIDE * 1.0 / w;
+      float y1 = y * SIDE * 1.0 / h;
       if (x1 > g_game.pos_x && x1 < g_game.pos_x + 0.1 && y1 > g_game.pos_y && y1 < g_game.pos_y + 0.1)
-        pixels[i] = 0xffffff;
+      {
+        draw_tile(x * SIDE, y * SIDE, SIDE, SIDE, 0xffffff); // white
+      }
       else
-        pixels[i] = 0x000000;
+      {
+        draw_tile(x * SIDE, y * SIDE, SIDE, SIDE, 0x0ff000); // white
+      }
     }
+    io_write(AM_GPU_FBDRAW, 0, 0, NULL, 0, 0, true);
   }
-  ioe_write(AM_GPU_FBDRAW, &event);
 }
