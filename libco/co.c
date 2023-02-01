@@ -89,9 +89,8 @@ Co *co_start(const char *name, void (*func)(void *), void *arg)
 void co_wait(struct co *co)
 {
   debug("wait %s\n", co->name);
-  co->status = CO_RUNNING;
   co->waiter = co_list[current];
-  // co_yield();
+  co_yield();
 }
 int find_next()
 {
@@ -109,6 +108,7 @@ int find_next()
     return current;
   return valid_co[0];
 }
+
 static inline void stack_switch_call(void *sp, void *entry, uintptr_t arg) {
   asm volatile (
 #if __x86_64__
@@ -120,31 +120,39 @@ static inline void stack_switch_call(void *sp, void *entry, uintptr_t arg) {
 #endif
   );
 }
+
 void run(int index)
 {
   Co * p = co_list[index];
-  stack_switch_call(p->stack, p->func, (uintptr_t)p->arg);
+  debug("run:%s\n", p->name);
+  p->status = CO_RUNNING;
   current = index;
+  stack_switch_call(p->stack, p->func, (uintptr_t)p->arg);
 }
 void co_yield ()
 {
   Co * old = co_list[current];
+  debug("co yield current:%d, %s\n", current, old->name);
   int val = setjmp(old->context);
   if (val == 0) {
+    debug("set jump value:%d\n", val);
     int next = find_next();
     Co * new = co_list[next];
+    debug("co yield to new:%d, %s\n", next, new->name);
     if(new->status == CO_NEW)
     {
+      debug("co yield to new:%d, %s, go_new\n", next, new->name);
       run(next);
     }
     else
     {
       // TODO: after new co is dead
+      debug("co yield to new:%d, %s, %d\n", next, new->name, new->status);
       longjmp(new->context, next + 1);
     }
   } else {
+    debug("set jump value:%d\n", val);
     current = val - 1;
-    Co * p = co_list[current];
   }
 
 }
