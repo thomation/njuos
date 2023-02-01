@@ -4,7 +4,7 @@
 #include <setjmp.h>
 #include <stdint.h>
 
-#define STACK_SIZE 8 * 1024 * 1024
+#define STACK_SIZE 8 * 1024
 #define CO_LIST_SIZE 16
 #define CO_MAIN 0
 
@@ -112,22 +112,26 @@ int find_next()
 static inline void stack_switch_call(void *sp, void *entry, uintptr_t arg) {
   asm volatile (
 #if __x86_64__
-    "movq %0, %%rsp; movq %2, %%rdi; jmp *%1"
-      : : "b"((uintptr_t)sp), "d"(entry), "a"(arg) : "memory"
+    "movq %0, %%rsp; movq %2, %%rdi; jmp *%1" : : "b"((uintptr_t)sp),     "d"(entry), "a"(arg)
 #else
-    "movl %0, %%esp; movl %2, 4(%0); jmp *%1"
-      : : "b"((uintptr_t)sp - 8), "d"(entry), "a"(arg) : "memory"
+    "movl %0, %%esp; movl %2, 4(%0); jmp *%1" : : "b"((uintptr_t)sp - 8), "d"(entry), "a"(arg)
 #endif
   );
 }
-
+static inline void *stack_top(Co * c) {
+  return c->stack + sizeof(c->stack);
+}
+static void test(void *)
+{
+  debug("Test");
+}
 void run(int index)
 {
   Co * p = co_list[index];
   debug("run:%s\n", p->name);
   p->status = CO_RUNNING;
   current = index;
-  stack_switch_call(p->stack, p->func, (uintptr_t)p->arg);
+  stack_switch_call(stack_top(p), p->func, (uintptr_t)p->arg);
 }
 void co_yield ()
 {
