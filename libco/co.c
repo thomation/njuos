@@ -4,7 +4,6 @@
 #include <setjmp.h>
 #include <stdint.h>
 
-#define STACK_SIZE 8 * 1024
 #define CO_LIST_SIZE 16
 #define CO_MAIN 0
 
@@ -12,12 +11,11 @@ static int current = -1;
 static struct co *co_list[CO_LIST_SIZE] = {NULL};
 static int co_count = 0;
 
-
 #define ENABLE_DEBUG_PRINT
 #ifdef ENABLE_DEBUG_PRINT
-  #define debug(...) printf(__VA_ARGS__)
+#define debug(...) printf(__VA_ARGS__)
 #else
-  #define debug()
+#define debug()
 #endif
 
 enum CoStatus
@@ -27,6 +25,10 @@ enum CoStatus
   CO_WAITING,
   CO_DEAD,
 };
+typedef struct _Stack
+{
+  uint8_t stack[8192];
+} Stack;
 typedef struct co
 {
   char *name;
@@ -35,12 +37,12 @@ typedef struct co
   enum CoStatus status;
   struct co *waiter;
   jmp_buf context;
-  unsigned char stack[STACK_SIZE];
+  Stack stack;
 } Co;
 
 void co_destroy(int index)
 {
-  if(co_list[index])
+  if (co_list[index])
   {
     debug("Destory %s", co_list[index]->name);
     free(co_list[index]);
@@ -58,21 +60,21 @@ static Co *co_create(const char *name, void (*func)(void *), void *arg)
   p->name = (char *)name;
   p->func = func;
   p->arg = arg;
-  p-> waiter = NULL;
+  p->waiter = NULL;
   return p;
 }
 Co *co_start(const char *name, void (*func)(void *), void *arg)
 {
-  if(current == -1)
+  if (current == -1)
   {
     debug("Create main, current size:%d\n", co_count);
     co_destroy(CO_MAIN);
-    Co * m = co_create("__MAIN__", NULL, NULL);
+    Co *m = co_create("__MAIN__", NULL, NULL);
     m->status = CO_RUNNING;
     current = 0;
     co_list[current] = m;
-    co_count ++;
-    co_yield();
+    co_count++;
+    co_yield ();
   }
   debug("Create co:%s, current size:%d\n", name, co_count);
   if (co_count >= CO_LIST_SIZE)
@@ -80,7 +82,7 @@ Co *co_start(const char *name, void (*func)(void *), void *arg)
     printf("Only support %d co\n", CO_LIST_SIZE);
     exit(-1);
   }
-  Co * p = co_create(name, func, arg);
+  Co *p = co_create(name, func, arg);
   p->status = CO_NEW;
   co_list[co_count++] = p;
   return p;
@@ -90,7 +92,7 @@ void co_wait(struct co *co)
 {
   debug("wait %s\n", co->name);
   co->waiter = co_list[current];
-  co_yield();
+  co_yield ();
 }
 int find_next()
 {
@@ -109,41 +111,48 @@ int find_next()
   return valid_co[0];
 }
 
-static inline void stack_switch_call(void *sp, void *entry, uintptr_t arg) {
-  asm volatile (
+static inline void stack_switch_call(void *sp, void *entry, uintptr_t arg)
+{
+  asm volatile(
 #if __x86_64__
-    "movq %0, %%rsp; movq %2, %%rdi; jmp *%1" : : "b"((uintptr_t)sp),     "d"(entry), "a"(arg)
+      "movq %0, %%rsp; movq %2, %%rdi; jmp *%1"
+      :
+      : "b"((uintptr_t)sp), "d"(entry), "a"(arg)
 #else
-    "movl %0, %%esp; movl %2, 4(%0); jmp *%1" : : "b"((uintptr_t)sp - 8), "d"(entry), "a"(arg)
+      "movl %0, %%esp; movl %2, 4(%0); jmp *%1"
+      :
+      : "b"((uintptr_t)sp - 8), "d"(entry), "a"(arg)
 #endif
   );
 }
-static inline void *stack_top(Co * c) {
-  return c->stack + sizeof(c->stack);
-}
-static void test(void *)
+static inline void *stack_top(Stack *s)
 {
-  debug("Test");
+  return s->stack + sizeof(s->stack);
 }
+// static void test(void *)
+// {
+//   debug("Test");
+// }
 void run(int index)
 {
-  Co * p = co_list[index];
+  Co *p = co_list[index];
   debug("run:%s\n", p->name);
   p->status = CO_RUNNING;
   current = index;
-  stack_switch_call(stack_top(p), p->func, (uintptr_t)p->arg);
+  stack_switch_call(stack_top(&p->stack), p->func, (uintptr_t)p->arg);
 }
 void co_yield ()
 {
-  Co * old = co_list[current];
+  Co *old = co_list[current];
   debug("co yield current:%d, %s\n", current, old->name);
   int val = setjmp(old->context);
-  if (val == 0) {
+  if (val == 0)
+  {
     debug("set jump value:%d\n", val);
     int next = find_next();
-    Co * new = co_list[next];
+    Co *new = co_list[next];
     debug("co yield to new:%d, %s\n", next, new->name);
-    if(new->status == CO_NEW)
+    if (new->status == CO_NEW)
     {
       debug("co yield to new:%d, %s, go_new\n", next, new->name);
       run(next);
@@ -154,9 +163,10 @@ void co_yield ()
       debug("co yield to new:%d, %s, %d\n", next, new->name, new->status);
       longjmp(new->context, next + 1);
     }
-  } else {
+  }
+  else
+  {
     debug("set jump value:%d\n", val);
     current = val - 1;
   }
-
 }
