@@ -29,7 +29,7 @@ int main()
 {
     int size = sizeof(u_int8_t) * 8192;
     u_int8_t *stack = malloc(size);
-    u_int8_t *top = stack + size + 8;
+    u_int8_t *top = stack + size - 8;
     stack_switch_call(top, method, 7);
     printf("Jmp end\n");
     return 0;
