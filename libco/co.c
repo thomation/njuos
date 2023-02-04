@@ -127,7 +127,7 @@ static inline void stack_switch_call(void *sp, void *entry, uintptr_t arg)
 }
 static inline void *stack_top(Stack *s)
 {
-  return s->stack + sizeof(s->stack);
+  return s->stack + sizeof(s->stack) - 8; // Simulate ret address to fix segment fault.
 }
 // static void test(void *)
 // {
