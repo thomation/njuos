@@ -4,6 +4,13 @@
 #include <string.h>
 #include "co-test.h"
 
+
+#define ENABLE_DEBUG_PRINT
+#ifdef ENABLE_DEBUG_PRINT
+#define debug(...) printf(__VA_ARGS__)
+#else
+#define debug(...)
+#endif
 int g_count = 0;
 
 static void add_count() {
@@ -25,6 +32,8 @@ static void work_loop(void *arg) {
 
 static void work(void *arg) {
     work_loop(arg);
+    const char *s = (const char*)arg;
+    debug("work done:%s\n", s);
 }
 
 static void test_1() {
@@ -35,7 +44,7 @@ static void test_1() {
     co_wait(thd1);
     co_wait(thd2);
 
-//    printf("\n");
+    debug("test_1 end\n");
 }
 
 // -----------------------------------------------
@@ -126,7 +135,7 @@ int main() {
     // printf("\n\nTest #2. Expect: (libco-){200, 201, 202, ..., 399}\n");
     // test_2();
 
-    printf("Test End\n\n");
+    debug("Test End\n\n");
 
     return 0;
 }
