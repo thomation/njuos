@@ -11,17 +11,18 @@ static int current = -1;
 static struct co *co_list[CO_LIST_SIZE] = {NULL};
 static int co_count = 0;
 
-#define ENABLE_DEBUG_PRINT
+// #define ENABLE_DEBUG_PRINT
 #ifdef ENABLE_DEBUG_PRINT
 #define debug(...) printf(__VA_ARGS__)
 #else
-#define debug()
+#define debug(...)
 #endif
 
 enum CoStatus
 {
   CO_NEW,
   CO_RUNNING,
+  CO_SCHEDULABLE = CO_RUNNING,
   CO_WAITING,
   CO_DEAD,
 };
@@ -92,6 +93,7 @@ void co_wait(struct co *co)
 {
   debug("wait %s\n", co->name);
   co->waiter = co_list[current];
+  co->waiter->status = CO_WAITING;
   co_yield ();
 }
 int find_next()
@@ -101,14 +103,15 @@ int find_next()
   for (int i = 0; i < co_count; i++)
   {
     struct co *p = co_list[i];
-    if (p->status != CO_DEAD && i != current)
+    if (p->status <= CO_SCHEDULABLE && i != current)
     {
       valid_co[valid_count++] = i;
     }
   }
   if (valid_count <= 0)
     return current;
-  return valid_co[0];
+  int r = rand() % valid_count;
+  return valid_co[r];
 }
 
 static inline void stack_switch_call(void *sp, void *entry, uintptr_t arg)
