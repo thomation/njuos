@@ -11,7 +11,7 @@ static int current = -1;
 static struct co *co_list[CO_LIST_SIZE] = {NULL};
 static int co_count = 0;
 
-// #define ENABLE_DEBUG_PRINT
+#define ENABLE_DEBUG_PRINT
 #ifdef ENABLE_DEBUG_PRINT
 #define debug(...) printf(__VA_ARGS__)
 #else
@@ -41,12 +41,32 @@ typedef struct co
   Stack stack;
 } Co;
 
-void co_destroy(Co * co)
+void co_destroy(int i)
 {
-  if (co)
+  Co *co = co_list[i];
+  debug("Destory %s\n", co->name);
+  free(co);
+  co_list[i] = NULL;
+}
+void co_gc()
+{
+  int live = 0;
+  for (int i = 1; i < co_count; i++)
   {
-    debug("Destory %s\n", co->name);
-    free(co);
+    Co *co = co_list[i];
+    if (co && co->status == CO_DEAD && co->waiter)
+    {
+      co_destroy(i);
+    }
+    else
+    {
+      live++;
+    }
+  }
+  if (live <= 0)
+  {
+    co_destroy(CO_MAIN);
+    co_count = 0;
   }
 }
 static Co *co_create(const char *name, void (*func)(void *), void *arg)
@@ -92,10 +112,7 @@ void co_wait(struct co *co)
   co->waiter = co_list[current];
   co->waiter->status = CO_WAITING;
   co_yield ();
-  if(co->status == CO_DEAD)
-  {
-    co_destroy(co);
-  }
+  co_gc();
 }
 int find_next()
 {
@@ -104,7 +121,7 @@ int find_next()
   for (int i = 0; i < co_count; i++)
   {
     struct co *p = co_list[i];
-    if (p->status <= CO_SCHEDULABLE && i != current)
+    if (p && p->status <= CO_SCHEDULABLE && i != current)
     {
       valid_co[valid_count++] = i;
     }
@@ -177,5 +194,9 @@ void co_yield ()
   {
     debug("set jump value:%d\n", val);
     current = val - 1;
+    if (current == CO_MAIN)
+    {
+      debug("main status:%d\n", co_list[current]->status);
+    }
   }
 }
