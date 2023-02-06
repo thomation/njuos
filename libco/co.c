@@ -11,7 +11,7 @@ static int current = -1;
 static struct co *co_list[CO_LIST_SIZE] = {NULL};
 static int co_count = 0;
 
-#define ENABLE_DEBUG_PRINT
+// #define ENABLE_DEBUG_PRINT
 #ifdef ENABLE_DEBUG_PRINT
 #define debug(...) printf(__VA_ARGS__)
 #else
