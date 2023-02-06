@@ -11,7 +11,7 @@ static int current = -1;
 static struct co *co_list[CO_LIST_SIZE] = {NULL};
 static int co_count = 0;
 
-// #define ENABLE_DEBUG_PRINT
+#define ENABLE_DEBUG_PRINT
 #ifdef ENABLE_DEBUG_PRINT
 #define debug(...) printf(__VA_ARGS__)
 #else
@@ -41,13 +41,12 @@ typedef struct co
   Stack stack;
 } Co;
 
-void co_destroy(int index)
+void co_destroy(Co * co)
 {
-  if (co_list[index])
+  if (co)
   {
-    debug("Destory %s", co_list[index]->name);
-    free(co_list[index]);
-    co_list[index] = NULL;
+    debug("Destory %s\n", co->name);
+    free(co);
   }
 }
 static Co *co_create(const char *name, void (*func)(void *), void *arg)
@@ -69,13 +68,11 @@ Co *co_start(const char *name, void (*func)(void *), void *arg)
   if (current == -1)
   {
     debug("Create main, current size:%d\n", co_count);
-    co_destroy(CO_MAIN);
     Co *m = co_create("__MAIN__", NULL, NULL);
     m->status = CO_RUNNING;
     current = 0;
     co_list[current] = m;
     co_count++;
-    co_yield ();
   }
   debug("Create co:%s, current size:%d\n", name, co_count);
   if (co_count >= CO_LIST_SIZE)
@@ -95,6 +92,10 @@ void co_wait(struct co *co)
   co->waiter = co_list[current];
   co->waiter->status = CO_WAITING;
   co_yield ();
+  if(co->status == CO_DEAD)
+  {
+    co_destroy(co);
+  }
 }
 int find_next()
 {
@@ -108,41 +109,46 @@ int find_next()
       valid_co[valid_count++] = i;
     }
   }
+  debug("valid count:%d\n", valid_count);
   if (valid_count <= 0)
     return current;
   int r = rand() % valid_count;
   return valid_co[r];
 }
-
-static inline void stack_switch_call(void *sp, void *entry, uintptr_t arg)
+static void exit_co_func()
+{
+  debug("exit co func\n");
+  int i = current;
+  Co *p = co_list[current];
+  p->status = CO_DEAD;
+  longjmp(co_list[CO_MAIN]->context, 1);
+}
+static inline void stack_switch_call(void *sp, void *entry, uintptr_t arg, void *exit)
 {
   asm volatile(
 #if __x86_64__
-      "movq %0, %%rsp; movq %2, %%rdi; jmp *%1"
+      "movq %0, %%rsp; movq %3, (%%rsp); movq %2, %%rdi; jmp *%1"
       :
-      : "b"((uintptr_t)sp), "d"(entry), "a"(arg)
+      : "b"((uintptr_t)sp), "d"(entry), "a"(arg), "r"((uintptr_t)exit)
 #else
       "movl %0, %%esp; movl %2, 4(%0); jmp *%1"
       :
       : "b"((uintptr_t)sp - 8), "d"(entry), "a"(arg)
 #endif
   );
+  debug("stack_switch_call end\n");
 }
 static inline void *stack_top(Stack *s)
 {
   return s->stack + sizeof(s->stack) - 8; // Simulate ret address to fix segment fault.
 }
-// static void test(void *)
-// {
-//   debug("Test");
-// }
 void run(int index)
 {
   Co *p = co_list[index];
   debug("run:%s\n", p->name);
   p->status = CO_RUNNING;
   current = index;
-  stack_switch_call(stack_top(&p->stack), p->func, (uintptr_t)p->arg);
+  stack_switch_call(stack_top(&p->stack), p->func, (uintptr_t)p->arg, exit_co_func);
 }
 void co_yield ()
 {
@@ -154,16 +160,16 @@ void co_yield ()
     debug("set jump value:%d\n", val);
     int next = find_next();
     Co *new = co_list[next];
-    debug("co yield to new:%d, %s\n", next, new->name);
+    debug("co yield to next:%d, %s\n", next, new->name);
     if (new->status == CO_NEW)
     {
-      debug("co yield to new:%d, %s, go_new\n", next, new->name);
+      debug("co yield to next new:%d, %s, go_new\n", next, new->name);
       run(next);
     }
     else
     {
       // TODO: after new co is dead
-      debug("co yield to new:%d, %s, %d\n", next, new->name, new->status);
+      debug("co yield to next old:%d, %s, %d\n", next, new->name, new->status);
       longjmp(new->context, next + 1);
     }
   }

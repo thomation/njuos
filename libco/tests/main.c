@@ -23,17 +23,19 @@ static int get_count() {
 
 static void work_loop(void *arg) {
     const char *s = (const char*)arg;
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 1; ++i) {
         printf("%s%d  ", s, get_count());
         add_count();
         co_yield();
     }
+    debug("work loop done\n");
 }
 
 static void work(void *arg) {
-    work_loop(arg);
     const char *s = (const char*)arg;
-    debug("work done:%s\n", s);
+    debug("work start:%s\n", s);
+    work_loop(arg);
+    // debug("work done:%s\n", s);
 }
 
 static void test_1() {
