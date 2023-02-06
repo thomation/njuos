@@ -7,9 +7,13 @@ static jmp_buf context;
 static int method(void *param)
 {
   printf("Hello jmp start\n");
-  int i = (int)param;
+  uintptr_t i = (uintptr_t)param;
   printf("Hello jmp param\n");
+#if __x86_64__
+  printf("Hello Jmp %ld\n", i);
+#else
   printf("Hello Jmp %d\n", i);
+#endif
   // longjmp(context, 1);
   printf("Hello jmp return\n");
   return 1;
@@ -19,7 +23,7 @@ static void method_return()
   printf("method_return\n");
   longjmp(context, 1);
 }
-static inline void stack_switch_call(void *sp, void *entry, uintptr_t arg, void* exit)
+static inline void stack_switch_call(void *sp, void *entry, uintptr_t arg, void *exit)
 {
   asm volatile(
 #if __x86_64__
