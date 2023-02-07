@@ -148,7 +148,6 @@ int find_next()
 static void exit_co_func()
 {
   debug("exit co func\n");
-  int i = current;
   Co *p = co_list[current];
   p->status = CO_DEAD;
   current = CO_MAIN;
