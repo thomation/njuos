@@ -151,6 +151,7 @@ static void exit_co_func()
   int i = current;
   Co *p = co_list[current];
   p->status = CO_DEAD;
+  current = CO_MAIN;
   longjmp(co_list[CO_MAIN]->context, 1);
 }
 static inline void stack_switch_call(void *sp, void *entry, uintptr_t arg, void *exit)
@@ -177,20 +178,18 @@ void run(int index)
   Co *p = co_list[index];
   debug("run:%s\n", p->name);
   p->status = CO_RUNNING;
-  current = index;
   stack_switch_call(stack_top(&p->stack), p->func, (uintptr_t)p->arg, exit_co_func);
 }
 void co_yield ()
 {
-  Co *old = co_list[current];
-  debug("co yield current:%d, %s\n", current, old->name);
-  int val = setjmp(old->context);
-  if (val == 0)
+  if (setjmp(co_list[current]->context) == 0)
   {
-    debug("set jump value:%d\n", val);
+    Co *old = co_list[current];
+    debug("co yield current:%d, %s\n", current, old->name);
     int next = find_next();
     Co *new = co_list[next];
-    debug("co yield to next:%d, %s\n", next, new->name);
+    debug("co yield from %d to next:%d, %s\n", current, next, new->name);
+    current = next;
     if (new->status == CO_NEW)
     {
       debug("co yield to next new:%d, %s, go_new\n", next, new->name);
@@ -200,16 +199,7 @@ void co_yield ()
     {
       // TODO: after new co is dead
       debug("co yield to next old:%d, %s, %d\n", next, new->name, new->status);
-      longjmp(new->context, next + 1);
-    }
-  }
-  else
-  {
-    debug("set jump value:%d\n", val);
-    current = val - 1;
-    if (current == CO_MAIN)
-    {
-      debug("main status:%d\n", co_list[current]->status);
+      longjmp(new->context, 1);
     }
   }
 }
