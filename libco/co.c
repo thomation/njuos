@@ -48,25 +48,36 @@ void co_destroy(int i)
   free(co);
   co_list[i] = NULL;
 }
+void co_check_and_destory(Co *co)
+{
+  if(co->status != CO_DEAD)
+    return;
+  for (int i = 1; i < co_count; i++)
+  {
+    if(co_list[i] == co)
+    {
+      free(co);
+      co_list[i] = NULL;
+      break;
+    }
+  }
+}
 void co_gc()
 {
   int live = 0;
   for (int i = 1; i < co_count; i++)
   {
-    Co *co = co_list[i];
-    if (co && co->status == CO_DEAD && co->waiter)
-    {
-      co_destroy(i);
-    }
-    else
+    Co * co = co_list[i];
+    if (co)
     {
       live++;
     }
   }
-  if (live <= 0)
+  if (live <= 1)
   {
     co_destroy(CO_MAIN);
     co_count = 0;
+    current = -1;
   }
 }
 static Co *co_create(const char *name, void (*func)(void *), void *arg)
@@ -109,9 +120,11 @@ Co *co_start(const char *name, void (*func)(void *), void *arg)
 void co_wait(struct co *co)
 {
   debug("wait %s\n", co->name);
+  co_check_and_destory(co);
   co->waiter = co_list[current];
   co->waiter->status = CO_WAITING;
   co_yield ();
+  co_check_and_destory(co);
   co_gc();
 }
 int find_next()
