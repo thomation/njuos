@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <setjmp.h>
+
+// Only save callee saved register
+//https://github.com/lattera/glibc/blob/master/sysdeps/x86_64/setjmp.S
+
 static jmp_buf buf;
 static inline void save()
 {
@@ -18,9 +22,7 @@ int main()
   // setjmp(buf);
   save();
   n++;
-  // pc can be restored.
-  // call stack can be restored.
-  // but the value on stack will be the newest.
+  //the value on stack will be the newest.
   printf("Hello %d\n", n);
   restore();
 }
