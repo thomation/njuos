@@ -28,7 +28,7 @@ enum CoStatus
 };
 typedef struct _Stack
 {
-  uint8_t stack[8192];
+  uint8_t stack[64 * 1024];
 } Stack;
 typedef struct co
 {
