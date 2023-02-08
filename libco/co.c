@@ -50,11 +50,11 @@ void co_destroy(int i)
 }
 void co_check_and_destory(Co *co)
 {
-  if(co->status != CO_DEAD)
+  if (co->status != CO_DEAD)
     return;
   for (int i = 1; i < co_count; i++)
   {
-    if(co_list[i] == co)
+    if (co_list[i] == co)
     {
       free(co);
       co_list[i] = NULL;
@@ -67,7 +67,7 @@ void co_gc()
   int live = 0;
   for (int i = 1; i < co_count; i++)
   {
-    Co * co = co_list[i];
+    Co *co = co_list[i];
     if (co)
     {
       live++;
@@ -170,7 +170,11 @@ static inline void stack_switch_call(void *sp, void *entry, uintptr_t arg, void 
 }
 static inline void *stack_top(Stack *s)
 {
+#if __x86_64__
   return s->stack + sizeof(s->stack) - 8; // Simulate ret address to fix segment fault.
+#else
+  return s->stack + sizeof(s->stack);
+#endif
 }
 void run(int index)
 {
