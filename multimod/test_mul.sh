@@ -1,3 +1,0 @@
-while read line; do
-    $1 $line
-done < /dev/stdin

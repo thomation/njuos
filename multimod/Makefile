@@ -3,6 +3,10 @@ all: $(NAME)-64 $(NAME)-32
 export MODULE := Lab1
 include ../Makefile
 
+define test_with
+	@while read line; do $(1) $$line; done < ./test_case 
+endef
+
 test: all
-	python3 gen_num.py | sh test_mul.sh ./$(NAME)-64 
-	python3 gen_num.py | sh test_mul.sh ./$(NAME)-32
+	$(call test_with, ./$(NAME)-64)
+	$(call test_with, ./$(NAME)-32)
