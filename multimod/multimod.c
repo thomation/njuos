@@ -40,8 +40,12 @@ void bits_sub(uint8_t *l_bits, int l_size, uint8_t *r_bits, int r_size) {
   uint64_t t = l - r;
   uint8_t t_bits[64];
   uint64_to_bits(t, t_bits);
-  for(int i = 0; i < l_size; i ++)
+  // print_bits(t_bits, 64);
+  for(int i = 0; i < l_size; i ++) {
+    // printf("%d: %d -> %d\n",i, l_bits[i], t_bits[i + 64 - l_size]);
     l_bits[i] = t_bits[i + 64 - l_size];
+  }
+  // print_bits(l_bits, 64);
 }
 uint64_t bits_mod(uint8_t *bits, uint8_t * m_bits) {
   int left = bits_left_1(bits, 128);
