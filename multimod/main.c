@@ -79,7 +79,34 @@ void test_bits_add(uint64_t l, uint64_t r) {
   printf(U64 " + " U64 " = " U64 "\n", l, r, v);
   assert(l + r == v);
 }
+void test_components() {
+  printf("================ test bits convert ================================\n");
+  test_bits_convert(123);
+  test_bits_convert(456);
+  test_bits_convert(-1ULL);
+  test_bits_convert(-2ULL);
 
+  printf("================ test bits sub ================================\n");
+  test_bits_sub(1, 1);
+  test_bits_sub(456, 123);
+  test_bits_sub(-1ULL, 123);
+  test_bits_sub(-1ULL, -2ULL);
+  test_bits_sub(-1ULL, -1ULL);
+
+  printf("================ test bits mod ================================\n");
+  test_bits_mod(1, 1);
+  test_bits_mod(123, 456);
+  test_bits_mod(456, 123);
+  test_bits_mod(-2ULL, -1ULL);
+  test_bits_mod(-1ULL, -1ULL);
+
+  printf("================ test bits add ================================\n");
+  test_bits_add(0, 0);
+  test_bits_add(0, 1);
+  test_bits_add(1, 0);
+  test_bits_add(123, 456);
+  test_bits_add(-1ULL, 1);
+}
 int main(int argc, char* argv[]) {
   uint64_t a, b, m, r;
   sscanf(argv[1], U64, &a);
@@ -87,31 +114,7 @@ int main(int argc, char* argv[]) {
   sscanf(argv[3], U64, &m);
   sscanf(argv[4], U64, &r);
   // test(a, b, m, r);
-
-
-  // test_bits_convert(a);
-  // test_bits_convert(b);
-  // test_bits_convert(m);
-  // test_bits_convert(r);
-
-  // test_bits_sub(1, 1);
-  // test_bits_sub(456, 123);
-  // test_bits_sub(-1ULL, 123);
-  // test_bits_sub(-1ULL, -2ULL);
-  // test_bits_sub(-1ULL, -1ULL);
-
-  // test_bits_mod(1, 1);
-  // test_bits_mod(123, 456);
-  // test_bits_mod(456, 123);
-  // test_bits_mod(-2ULL, -1ULL);
-  // test_bits_mod(-1ULL, -1ULL);
-
-    test_bits_add(0, 0);
-    test_bits_add(0, 1);
-    test_bits_add(1, 0);
-    test_bits_add(123, 456);
-    test_bits_add(-1ULL, 1);
-
+  test_components();
   // int64_t a, b, m, r;
   // sscanf(argv[1], D64, &a);
   // sscanf(argv[2], D64, &b);
