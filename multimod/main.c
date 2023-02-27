@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
   sscanf(argv[2], U64, &b);
   sscanf(argv[3], U64, &m);
   sscanf(argv[4], U64, &r);
-  // test(a, b, m, r);
+  test(a, b, m, r);
 
 
   // test_bits_convert(a);
@@ -83,11 +83,11 @@ int main(int argc, char* argv[]) {
   // test_bits_sub(-1ULL, -2ULL);
   // test_bits_sub(-1ULL, -1ULL);
 
-  test_bits_mod(1, 1);
-  test_bits_mod(123, 456);
-  test_bits_mod(456, 123);
-  test_bits_mod(-2ULL, -1ULL);
-  test_bits_mod(-1ULL, -1ULL);
+  // test_bits_mod(1, 1);
+  // test_bits_mod(123, 456);
+  // test_bits_mod(456, 123);
+  // test_bits_mod(-2ULL, -1ULL);
+  // test_bits_mod(-1ULL, -1ULL);
 
 
   // int64_t a, b, m, r;
