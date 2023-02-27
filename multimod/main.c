@@ -14,7 +14,7 @@ uint64_t bits_to_uint64(uint8_t * bits, int len);
 void print_bits(uint8_t * bits, int len);
 int bits_left_1(uint8_t *bits, int len); 
 void bits_sub(uint8_t *l_bits, int l_size, uint8_t *r_bits, int r_size); 
-uint64_t bits_mod(uint8_t *bits, uint8_t * m_bits);
+void bits_mod(uint8_t *bits, uint8_t * m_bits);
 void bits_add(uint8_t *l, uint8_t *r); 
 void reset_bits(uint8_t * bits, int len); 
 
@@ -61,7 +61,8 @@ void test_bits_mod(uint64_t n, uint64_t m) {
   uint64_to_bits(n, n_bits + 64);
   uint8_t m_bits[64];
   uint64_to_bits(m, m_bits);
-  uint64_t v = bits_mod(n_bits, m_bits);
+  bits_mod(n_bits, m_bits);
+  uint64_t v = bits_to_uint64(n_bits + 64, 64);
   printf(U64 " mod " U64 " = " U64 "\n", n, m, v);
   assert(v == n % m);
 }
