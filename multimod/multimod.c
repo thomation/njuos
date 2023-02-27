@@ -32,7 +32,7 @@ int bits_left_1(uint8_t *bits, int len) {
     if(bits[i] == 1) 
       return i;
   }
-  assert(0);
+  return -1;
 }
 void bits_sub(uint8_t *l_bits, int l_size, uint8_t *r_bits, int r_size) {
   printf("bits_sub: %d, %d\n", l_size, r_size);
@@ -50,8 +50,10 @@ void bits_sub(uint8_t *l_bits, int l_size, uint8_t *r_bits, int r_size) {
     l_bits[i] = t_bits[i + 64 - l_size];
   }
 }
-uint64_t bits_mod(uint8_t *bits, uint8_t * m_bits) {
+void bits_mod(uint8_t *bits, uint8_t * m_bits) {
   int left = bits_left_1(bits, 128);
+  if(left < 0) // bits is zero
+    return;
   int m_left = bits_left_1(m_bits, 64);
   // printf("left:%d, m_left:%d\n", left, m_left);
   // print_bits(bits, 128);
@@ -82,9 +84,22 @@ uint64_t bits_mod(uint8_t *bits, uint8_t * m_bits) {
     // print_bits(bits, 128);
     // print_bits(bits + i, 128 - i);
   }
-  print_bits(bits + 64, 64);
-  uint64_t ret = bits_to_uint64(bits + 64, 64);
-  return ret;
+  print_bits(bits, 128);
+}
+void bits_add(uint8_t *l, uint8_t *r) {
+  int c = 0;
+  print_bits(l, 128);
+  print_bits(r, 128);
+  for(int i = 127; i >= 0; i --) {
+    uint8_t ret = (l[i] + r[i] + c) % 2;
+    c = l[i] + r[i] + c >= 2;
+    l[i] = ret;
+  }
+  print_bits(l, 128);
+}
+void reset_bits(uint8_t * bits, int len) {
+  for(int i = 0; i < len; i ++)
+    bits[i] = 0x0;
 }
 uint64_t multimod(uint64_t a, uint64_t b, uint64_t m) {
   assert(m != 0);
@@ -97,20 +112,23 @@ uint64_t multimod(uint64_t a, uint64_t b, uint64_t m) {
   uint64_to_bits(a, a_bits);
   uint64_to_bits(b, b_bits);
   uint64_to_bits(m, m_bits);
-  uint64_t ret = 0;
+  uint8_t ret_bits[128];
+  reset_bits(ret_bits, 128);
   for(int i = 0; i < 64; i ++) {
     if(a_bits[i] == 0)
       continue;
-    for(int j = 0; j < 128; j ++)
-      tmp_bits[j] = 0x0;
+    reset_bits(tmp_bits, 128);
     // tmp_bits == 00--0[multi resutl][i bits 0]
     bit_multi_bits(a_bits[i], b_bits, tmp_bits + i + 1);
     // printf("a index: %d\n", i);
     // print_bits(b_bits, 64);
     // print_bits(tmp_bits, 128);
-    ret += bits_mod(tmp_bits, m_bits);
-    ret %= m;
+    bits_mod(tmp_bits, m_bits);
+    bits_add(ret_bits, tmp_bits);
+    bits_mod(ret_bits, m_bits);
   }
+  print_bits(ret_bits, 128);
+  uint64_t ret = bits_to_uint64(ret_bits + 64, 64);
   return ret;
 }
 
