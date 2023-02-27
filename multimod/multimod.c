@@ -35,23 +35,26 @@ int bits_left_1(uint8_t *bits, int len) {
   assert(0);
 }
 void bits_sub(uint8_t *l_bits, int l_size, uint8_t *r_bits, int r_size) {
+  // printf("bits_sub\n");
+  // print_bits(l_bits, l_size);
+  // print_bits(r_bits, r_size);
   uint64_t l = bits_to_uint64(l_bits, l_size);
   uint64_t r = bits_to_uint64(r_bits, r_size);
   uint64_t t = l - r;
   uint8_t t_bits[64];
   uint64_to_bits(t, t_bits);
+  // printf("bits_sub result:\n");
   // print_bits(t_bits, 64);
   for(int i = 0; i < l_size; i ++) {
     // printf("%d: %d -> %d\n",i, l_bits[i], t_bits[i + 64 - l_size]);
     l_bits[i] = t_bits[i + 64 - l_size];
   }
-  // print_bits(l_bits, 64);
 }
 uint64_t bits_mod(uint8_t *bits, uint8_t * m_bits) {
   int left = bits_left_1(bits, 128);
   int m_left = bits_left_1(m_bits, 64);
-  // printf("left:%d, m_left:%d\n", left, m_left);
-  // printf("m_left bits:%d\n",m_bits[m_left]);
+  // print_bits(bits, 128);
+  // print_bits(m_bits, 64);
   for(int i = left; i < 128; i ++) {
     if(128 - i < 64 - m_left)
       break;
@@ -66,11 +69,17 @@ uint64_t bits_mod(uint8_t *bits, uint8_t * m_bits) {
         break;
       }
     }
+    // printf("mod before sub: %d\n", i);
+    // print_bits(bits, 128);
+    // print_bits(bits + i, 128 - i);
     if(m_is_small) {
       bits_sub(bits + i, 64 - m_left, m_bits + m_left, 64 - m_left);
-    } else {
+    } else if(128 - i > 64 - m_left) {
       bits_sub(bits + i, 64 - m_left + 1, m_bits + m_left, 64 - m_left);
     }
+    // printf("mod after sub: %d\n", i);
+    // print_bits(bits, 128);
+    // print_bits(bits + i, 128 - i);
   }
   uint64_t ret = bits_to_uint64(bits + 64, 64);
   return ret;

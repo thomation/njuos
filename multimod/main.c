@@ -14,6 +14,7 @@ uint64_t bits_to_uint64(uint8_t * bits, int len);
 void print_bits(uint8_t * bits, int len);
 int bits_left_1(uint8_t *bits, int len); 
 void bits_sub(uint8_t *l_bits, int l_size, uint8_t *r_bits, int r_size); 
+uint64_t bits_mod(uint8_t *bits, uint8_t * m_bits);
 void test(uint64_t a, uint64_t b, uint64_t m, uint64_t r) {
   printf(U64 " * " U64 " mod " U64 " = " U64 " \n", a, b, m, r);
   uint64_t v = multimod(a, b, m);
@@ -50,6 +51,17 @@ void test_bits_sub(uint64_t l, uint64_t r) {
   printf(U64 " - " U64 " = " U64 "\n", l, r, v);
   assert(v == l - r);
 }
+void test_bits_mod(uint64_t n, uint64_t m) {
+  printf(U64 " mod " U64 " = " U64 "\n", n, m, n % m);
+  uint8_t n_bits[128];
+  for(int i = 0; i < 64; i ++) n_bits[i] = 0x0;
+  uint64_to_bits(n, n_bits + 64);
+  uint8_t m_bits[64];
+  uint64_to_bits(m, m_bits);
+  uint64_t v = bits_mod(n_bits, m_bits);
+  printf(U64 " mod " U64 " = " U64 "\n", n, m, v);
+  assert(v == n % m);
+}
 
 int main(int argc, char* argv[]) {
   uint64_t a, b, m, r;
@@ -57,17 +69,27 @@ int main(int argc, char* argv[]) {
   sscanf(argv[2], U64, &b);
   sscanf(argv[3], U64, &m);
   sscanf(argv[4], U64, &r);
-  test_bits_sub(1, 1);
-  test_bits_sub(456, 123);
-  test_bits_sub(-1ULL, 123);
-  test_bits_sub(-1ULL, -2ULL);
-  test_bits_sub(-1ULL, -1ULL);
+  // test(a, b, m, r);
+
 
   // test_bits_convert(a);
   // test_bits_convert(b);
   // test_bits_convert(m);
   // test_bits_convert(r);
-  // test(a, b, m, r);
+
+  // test_bits_sub(1, 1);
+  // test_bits_sub(456, 123);
+  // test_bits_sub(-1ULL, 123);
+  // test_bits_sub(-1ULL, -2ULL);
+  // test_bits_sub(-1ULL, -1ULL);
+
+  test_bits_mod(1, 1);
+  test_bits_mod(123, 456);
+  test_bits_mod(456, 123);
+  test_bits_mod(-2ULL, -1ULL);
+  test_bits_mod(-1ULL, -1ULL);
+
+
   // int64_t a, b, m, r;
   // sscanf(argv[1], D64, &a);
   // sscanf(argv[2], D64, &b);
