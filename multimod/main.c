@@ -100,6 +100,7 @@ void test_components() {
   test_bits_mod(456, 123);
   test_bits_mod(-2ULL, -1ULL);
   test_bits_mod(-1ULL, -1ULL);
+  test_bits_mod(123*456, 789);
 
   printf("================ test bits add ================================\n");
   test_bits_add(0, 0);
