@@ -62,6 +62,7 @@ void test_bits_mod(uint64_t n, uint64_t m) {
   uint8_t m_bits[64];
   uint64_to_bits(m, m_bits);
   bits_mod(n_bits, m_bits);
+  print_bits(n_bits, 128);
   uint64_t v = bits_to_uint64(n_bits + 64, 64);
   printf(U64 " mod " U64 " = " U64 "\n", n, m, v);
   assert(v == n % m);
@@ -115,8 +116,8 @@ int main(int argc, char* argv[]) {
   sscanf(argv[2], U64, &b);
   sscanf(argv[3], U64, &m);
   sscanf(argv[4], U64, &r);
-  // test(a, b, m, r);
-  test_components();
+  test(a, b, m, r);
+  //  test_components();
   // int64_t a, b, m, r;
   // sscanf(argv[1], D64, &a);
   // sscanf(argv[2], D64, &b);

@@ -67,10 +67,13 @@ void bits_mod(uint8_t *bits, uint8_t * m_bits) {
     // bits[i] == 1
     int m_is_small = 1;
     for(int j = m_left; j < 64; j ++) {
-      if(bits[i + j - m_left] < m_bits[j]) {
-        m_is_small = 0;
-        break;
-      }
+      int nb = bits[i + j - m_left];
+      int mb = m_bits[j];
+      if(nb == mb) {
+        continue;
+      } 
+      m_is_small = mb <= nb;
+      break;
     }
     // printf("mod before sub: %d\n", i);
     // print_bits(bits, 128);
