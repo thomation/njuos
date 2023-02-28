@@ -8,6 +8,7 @@ def print_num(a, b, m):
 print_num(123, 456, 789)
 print_num(123, 456, 2**64-1)
 print_num(2**64-2, 2**64-2, 2**64-1)
+print_num(2**63, 2**63, 2**64-1)
 
 for _ in range(1, 10):
     a = random.randint(0, 2**64 - 1)
