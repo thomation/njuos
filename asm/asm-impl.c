@@ -1,8 +1,14 @@
 #include "asm.h"
 #include <string.h>
+#include <stdio.h>
 
 int64_t asm_add(int64_t a, int64_t b) {
-  return a + b;
+  int64_t c = 0;
+  asm volatile("movq %1, %%rax; movq %2, %%rdx; addq %%rdx, %%rax; movq %%rax, %0"
+    : "=r"(c)
+    : "a"(a), "b"(b)
+  );
+  return c;
 }
 
 int asm_popcnt(uint64_t x) {
