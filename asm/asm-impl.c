@@ -25,9 +25,9 @@ void *asm_memcpy(void *dest, const void *src, size_t n) {
 
 int asm_setjmp(asm_jmp_buf env) {
   long int *buf = env[0].__jmpbuf;
-  printf("before setjmp asm\n");
+  // printf("before setjmp asm\n");
   // rbx, rbp, r12, r13, r14, r15, rsp, pc
-  asm volatile("movq %%rdx, %0;"
+  asm volatile("movq %%rbx, %0;"
                "movq %%rbp, %1;"
                "movq %%r12, %2;"
                "movq %%r13, %3;"
@@ -39,11 +39,27 @@ int asm_setjmp(asm_jmp_buf env) {
                "movq %%rax, %7"
     : "=r"(buf[0]), "=r"(buf[1]), "=r"(buf[2]), "=r"(buf[3]), "=r"(buf[4]), "=r"(buf[5]), "=r"(buf[6]), "=r"(buf[7])
   );
-  printf("after setjmp asm\n");
+  // printf("after setjmp asm\n");
   return 0;
 }
 
 void asm_longjmp(asm_jmp_buf env, int val) {
-  printf("before longjmp asm\n");
-  longjmp(env, val);
+  // printf("before longjmp asm\n");
+  long int *buf = env[0].__jmpbuf;
+  // rbx, rbp, r12, r13, r14, r15, rsp, pc
+  asm volatile("movq %0, %%rbx;"
+               "movq %1, %%r9;"
+               "movq %2, %%r12;"
+               "movq %3, %%r13;"
+               "movq %4, %%r14;"
+               "movq %5, %%r15;"
+               "movq %6, %%r8;"
+               "movq %7, %%rdx;"
+               "movq %%r8, %%rsp;"
+               "movq %%r9, %%rbp;"
+               "mov %8, %%eax;"
+               "jmpq *%%rdx"
+    :: "r"(buf[0]), "r"(buf[1]), "r"(buf[2]), "r"(buf[3]), "r"(buf[4]), "r"(buf[5]), "r"(buf[6]), "r"(buf[7]), "r"(val)
+  );
+  // printf("after longjmp asm\n");
 }
