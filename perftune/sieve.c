@@ -8,8 +8,10 @@
 
 static uint8_t is_not_prime[N >> 3];
 static int  primes[N];
-#define IS_NOT_PRIME(x)  (*(is_not_prime + (x >> 3)) & (0x1 << (x&0x7)))
-#define SET_NOT_PRIME(x) (*(is_not_prime + (x >> 3)) |= (0x1 << (x&0x7)))
+#define GET_NOT_PRIME(x) (is_not_prime + (x >> 3)) 
+#define PRIME_BITS(x) (0x1 << (x&0x7))
+#define IS_NOT_PRIME(x) (*GET_NOT_PRIME(x) & PRIME_BITS(x))
+#define SET_NOT_PRIME(x) (*GET_NOT_PRIME(x) |= PRIME_BITS(x))
 int *sieve(int n) {
   assert(n + 1 < N);
   *is_not_prime = 0x50;
@@ -29,10 +31,16 @@ int *sieve(int n) {
   for (int j = 21; j <= n; j += 14) {
     SET_NOT_PRIME(j);
   }
+  uint8_t *temp_p;
+  uint8_t prime_bits;
   for (int i = 11; i <= n; i+= 2) {
     if(IS_NOT_PRIME(i))
       continue;
     for (int j = i + i + i; j <= n; j += i + i) {
+      // temp_p = GET_NOT_PRIME(j);
+      // prime_bits = PRIME_BITS(j);
+      // if(*temp_p & prime_bits)
+      //   *temp_p |= prime_bits;
       SET_NOT_PRIME(j);
     }
   }
