@@ -18,7 +18,17 @@ int *sieve(int n) {
   for(uint8_t * q = is_not_prime + 1; q < prime_end; q++) {
     *q = 0x55;
   }
-  for (int i = 3; i <= n; i+= 2) {
+
+  for (int j = 9; j <= n; j += 6) {
+    SET_NOT_PRIME(j);
+  }
+  for (int j = 25; j <= n; j += 10) {
+    SET_NOT_PRIME(j);
+  }
+  for (int j = 21; j <= n; j += 14) {
+    SET_NOT_PRIME(j);
+  }
+  for (int i = 11; i <= n; i+= 2) {
     if(IS_NOT_PRIME(i))
       continue;
     for (int j = i + i + i; j <= n; j += i + i) {
