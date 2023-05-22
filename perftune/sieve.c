@@ -40,28 +40,30 @@ int *sieve(int n) {
   for (int j = 21; j <= n; j += 14) {
     SET_NOT_PRIME(j);
   }
-  int index = 8;
-  for(uint8_t * q = is_not_prime + 1; q < prime_end; q ++, index += 8) {
-    uint8_t t = *q;
-    RUN(t, 1, index);
-    RUN(t, 3, index);
-    RUN(t, 5, index);
-    RUN(t, 7, index);
-  }
-  // for (int i = 11; i <= n; i+= 2) {
-  //   if(IS_NOT_PRIME(i))
-  //     continue;
-  //   for (int j = i + i + i; j <= n; j += i + i) {
-  //     SET_NOT_PRIME(j);
-  //   }
+  // int index = 8;
+  // for(uint8_t * q = is_not_prime + 1; q < prime_end; q ++, index += 8) {
+  //   if(index * index > n)
+  //     break;
+  //   uint8_t t = *q;
+  //   RUN(t, 1, index);
+  //   RUN(t, 3, index);
+  //   RUN(t, 5, index);
+  //   RUN(t, 7, index);
   // }
+  for (int i = 11; i * i <= n; i+= 2) {
+    if(IS_NOT_PRIME(i))
+      continue;
+    for (int j = i + i + i; j <= n; j += i + i) {
+      SET_NOT_PRIME(j);
+    }
+  }
 
   int *p = primes;
   *p++ = 2;
   *p++ = 3;
   *p++ = 5;
   *p++ = 7;
-  index = 8;
+  int index = 8;
   for(uint8_t * q = is_not_prime + 1; q < prime_end; q++, index +=8) {
     uint8_t t = *q;
     for(int i = 1; i < 8; i += 2) {
