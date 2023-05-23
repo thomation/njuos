@@ -21,7 +21,12 @@ static int  primes[N] = {2,3,5,7,11,13,17,19,23,29,31};
 #define PRIME_BITS(x) (0x1 << (x&WORD_MASK))
 #define IS_NOT_PRIME(x) (*GET_NOT_PRIME(x) & PRIME_BITS(x))
 #define SET_NOT_PRIME(x) (*GET_NOT_PRIME(x) |= PRIME_BITS(x))
-
+#define COMPUTE_PRIME(i, n) { \
+  int step = i + i; \
+  for (int j = i + i + i; j <= n; j += step) { \
+    SET_NOT_PRIME(j); \
+  } \
+}
 #define SELECT_RESULT(p, t, i) { \
   int j = 1 - ((t >> i) & 0x1); \
   *p = index + i; \
@@ -36,23 +41,13 @@ int *sieve(int n) {
   for(PRIME_ARRAY_TYPE * q = is_not_prime + 1; q < prime_end; q++) {
     *q = PRIME_SLOT;
   }
-
-  for (int j = 9; j <= n; j += 6) {
-    SET_NOT_PRIME(j);
-  }
-  for (int j = 25; j <= n; j += 10) {
-    SET_NOT_PRIME(j);
-  }
-  for (int j = 21; j <= n; j += 14) {
-    SET_NOT_PRIME(j);
-  }
+  COMPUTE_PRIME(3, n);
+  COMPUTE_PRIME(5, n);
+  COMPUTE_PRIME(7, n);
   for (int i = 11; i * i <= n; i+= 2) {
     if(IS_NOT_PRIME(i))
       continue;
-    int step = i + i;
-    for (int j = i + i + i; j <= n; j += step) {
-      SET_NOT_PRIME(j);
-    }
+    COMPUTE_PRIME(i, n);
   }
 
   int *p = primes + HARD_CODE_PRIME_NUM;
