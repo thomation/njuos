@@ -72,11 +72,6 @@ int *sieve(int n) {
       p += j;
     }
   }
-  for (int i = 3; i <= n; i+=2)
-    if (!IS_NOT_PRIME(i)) {
-      *p++ = i;
-    }
-
   *p = 0;
   return primes;
 }
