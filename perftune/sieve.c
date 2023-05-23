@@ -5,11 +5,13 @@
 #include <stdint.h>
 
 #define N 10000000
-
-static uint8_t is_not_prime[N >> 3];
+#define WORD_BIT 3
+#define WORD_SIZE 8
+#define WORD_MASK 0x7
+static uint8_t is_not_prime[N >> WORD_BIT];
 static int  primes[N];
 #define GET_NOT_PRIME(x) (is_not_prime + (x >> 3)) 
-#define PRIME_BITS(x) (0x1 << (x&0x7))
+#define PRIME_BITS(x) (0x1 << (x&WORD_MASK))
 #define IS_NOT_PRIME(x) (*GET_NOT_PRIME(x) & PRIME_BITS(x))
 #define SET_NOT_PRIME(x) (*GET_NOT_PRIME(x) |= PRIME_BITS(x))
 #define RUN(t, g, index) do { \
@@ -30,8 +32,8 @@ static int  primes[N];
 int *sieve(int n) {
   assert(n + 1 < N);
   *is_not_prime = 0x50;
-  int max = n >> 3;
-  if (max << 3 < n) max ++;
+  int max = n >> WORD_BIT;
+  if (max << WORD_BIT < n) max ++;
   uint8_t *prime_end = is_not_prime + max;
   for(uint8_t * q = is_not_prime + 1; q < prime_end; q++) {
     *q = 0x55;
@@ -70,8 +72,8 @@ int *sieve(int n) {
   *p++ = 3;
   *p++ = 5;
   *p++ = 7;
-  int index = 8;
-  for(uint8_t * q = is_not_prime + 1; q < prime_end; q++, index +=8) {
+  int index = WORD_SIZE;
+  for(uint8_t * q = is_not_prime + 1; q < prime_end; q++, index += WORD_SIZE) {
     uint8_t t = *q;
     SELECT_RESULT(p, t, 1);
     SELECT_RESULT(p, t, 3);
