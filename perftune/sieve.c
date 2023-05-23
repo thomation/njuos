@@ -21,6 +21,12 @@ static int  primes[N];
       } \
     } \
 }while(0)
+
+#define SELECT_RESULT(p, t, i) { \
+  int j = 1 - ((t >> i) & 0x1); \
+  *p = index + i; \
+  p += j; \
+}
 int *sieve(int n) {
   assert(n + 1 < N);
   *is_not_prime = 0x50;
@@ -66,11 +72,10 @@ int *sieve(int n) {
   int index = 8;
   for(uint8_t * q = is_not_prime + 1; q < prime_end; q++, index +=8) {
     uint8_t t = *q;
-    for(int i = 1; i < 8; i += 2) {
-      int j = 1 - ((t >> i) & 0x1);
-      *p = index + i; 
-      p += j;
-    }
+    SELECT_RESULT(p, t, 1);
+    SELECT_RESULT(p, t, 3);
+    SELECT_RESULT(p, t, 5);
+    SELECT_RESULT(p, t, 7);
   }
   *p = 0;
   return primes;
