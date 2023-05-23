@@ -59,7 +59,8 @@ int *sieve(int n) {
   for (int i = 11; i * i <= n; i+= 2) {
     if(IS_NOT_PRIME(i))
       continue;
-    for (int j = i + i + i; j <= n; j += i + i) {
+    int step = i + i;
+    for (int j = i + i + i; j <= n; j += step) {
       SET_NOT_PRIME(j);
     }
   }
