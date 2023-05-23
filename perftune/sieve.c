@@ -10,6 +10,7 @@
 #define WORD_SIZE 32 
 #define WORD_MASK 0x1f
 #define HARD_CODE_PRIME_NUM 11
+#define FIRST_PRIME 37
 #define PRIME_ARRAY_TYPE uint32_t
 #define FIRST_PRIME_SLOT 0x55555550
 #define PRIME_SLOT 0x55555555
@@ -44,7 +45,15 @@ int *sieve(int n) {
   COMPUTE_PRIME(3, n);
   COMPUTE_PRIME(5, n);
   COMPUTE_PRIME(7, n);
-  for (int i = 11; i * i <= n; i+= 2) {
+  COMPUTE_PRIME(11, n);
+  COMPUTE_PRIME(13, n);
+  COMPUTE_PRIME(17, n);
+  COMPUTE_PRIME(19, n);
+  COMPUTE_PRIME(23, n);
+  COMPUTE_PRIME(29, n);
+  COMPUTE_PRIME(31, n);
+
+  for (int i = FIRST_PRIME; i * i <= n; i+= 2) {
     if(IS_NOT_PRIME(i))
       continue;
     COMPUTE_PRIME(i, n);
