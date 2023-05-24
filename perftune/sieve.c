@@ -28,8 +28,8 @@ static int  primes[N] = {2,3,5,7,11,13,17,19,23,29,31};
     SET_NOT_PRIME(j); \
   } \
 }
-#define SELECT_RESULT(p, t, i) { \
-  int j = 1 - ((t >> i) & 0x1); \
+#define SELECT_RESULT(p, q, i) { \
+  int j = 1 - ((*q >> i) & 0x1); \
   *p = index + i; \
   p += j; \
 }
@@ -42,16 +42,8 @@ int *sieve(int n) {
   for(PRIME_ARRAY_TYPE * q = is_not_prime + 1; q < prime_end; q++) {
     *q = PRIME_SLOT;
   }
-  COMPUTE_PRIME(3, n);
-  COMPUTE_PRIME(5, n);
-  COMPUTE_PRIME(7, n);
-  COMPUTE_PRIME(11, n);
-  COMPUTE_PRIME(13, n);
-  COMPUTE_PRIME(17, n);
-  COMPUTE_PRIME(19, n);
-  COMPUTE_PRIME(23, n);
-  COMPUTE_PRIME(29, n);
-  COMPUTE_PRIME(31, n);
+  for(int i = 1; i < HARD_CODE_PRIME_NUM; i ++)
+    COMPUTE_PRIME(primes[i], n);
 
   for (int i = FIRST_PRIME; i * i <= n; i+= 2) {
     if(IS_NOT_PRIME(i))
@@ -62,23 +54,8 @@ int *sieve(int n) {
   int *p = primes + HARD_CODE_PRIME_NUM;
   int index = WORD_SIZE;
   for(PRIME_ARRAY_TYPE * q = is_not_prime + 1; q < prime_end; q++, index += WORD_SIZE) {
-    PRIME_ARRAY_TYPE t = *q;
-    SELECT_RESULT(p, t, 1);
-    SELECT_RESULT(p, t, 3);
-    SELECT_RESULT(p, t, 5);
-    SELECT_RESULT(p, t, 7);
-    SELECT_RESULT(p, t, 9);
-    SELECT_RESULT(p, t, 11);
-    SELECT_RESULT(p, t, 13);
-    SELECT_RESULT(p, t, 15);
-    SELECT_RESULT(p, t, 17);
-    SELECT_RESULT(p, t, 19);
-    SELECT_RESULT(p, t, 21);
-    SELECT_RESULT(p, t, 23);
-    SELECT_RESULT(p, t, 25);
-    SELECT_RESULT(p, t, 27);
-    SELECT_RESULT(p, t, 29);
-    SELECT_RESULT(p, t, 31);
+    for(int i = 1; i < WORD_SIZE; i += 2)
+      SELECT_RESULT(p, q, i);
   }
   *p = 0;
   return primes;
