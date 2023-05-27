@@ -39,7 +39,7 @@ static struct cache * handle_miss(struct cache_group * group, uintptr_t block_nu
 static struct cache * find_cache(uintptr_t block_num) {
   uint32_t group_index = block_num % group_count;
   uintptr_t tag = block_num / group_count;  
-  printf("find cache: block_num:%lu, group_index:%u, tag:%lu\n", block_num, group_index, tag);
+  // printf("find cache: block_num:%lu, group_index:%u, tag:%lu\n", block_num, group_index, tag);
   struct cache_group * group = &cache_groups[group_index];
   for(int i = 0; i < block_count_per_group; i ++) {
     struct cache *c = &group->caches[i];
@@ -50,26 +50,36 @@ static struct cache * find_cache(uintptr_t block_num) {
   return handle_miss(group, block_num, tag);
 }
 uint32_t cache_read(uintptr_t addr) {
-  printf("cache read: addr:%lu\n", addr);
+  // printf("cache read: old addr:%lu\n", addr);
+  addr &= ~0x3;
+  // printf("cache read: addr:%lu\n", addr);
   uintptr_t block_num = addr >> BLOCK_WIDTH;
   struct cache * c = find_cache(block_num);
   int block_offset = addr & mask_with_len(BLOCK_WIDTH);
-  uint32_t * p = (uint32_t *)(&c->block[block_offset]);
-  return *p;
-}
-
-void cache_write(uintptr_t addr, uint32_t data, uint32_t wmask) {
-  printf("cache write: addr:%lu, data:%x, wmask:%x \n", addr, data, wmask);
-  uintptr_t block_num = addr >> BLOCK_WIDTH;
-  struct cache * c = find_cache(block_num);
-  int block_offset = addr & mask_with_len(BLOCK_WIDTH);
-  // printf("cache write: block_offset: %d\n", block_offset);
-  uint32_t * p = (uint32_t *)(&c->block[block_offset]);
-  *p = data & wmask;
   // for(int i = 0; i < BLOCK_SIZE; i ++) {
   //   printf("%x", c->block[i]);
   // }
   // printf("\n");
+  uint32_t * p = (void *)c->block + block_offset;
+  // printf("cache read: block_offset:%d, ret:%x\n", block_offset, *p);
+  return *p;
+}
+
+void cache_write(uintptr_t addr, uint32_t data, uint32_t wmask) {
+  // printf("cache write: old addr:%lu\n", addr);
+  addr &= ~0x3;
+  // printf("cache write: addr:%lu, data:%x, wmask:%x \n", addr, data, wmask);
+  uintptr_t block_num = addr >> BLOCK_WIDTH;
+  struct cache * c = find_cache(block_num);
+  int block_offset = addr & mask_with_len(BLOCK_WIDTH);
+  // printf("cache write: block_offset: %d\n", block_offset);
+  uint32_t *p = (void *)c->block + block_offset;
+  *p = (*p & ~wmask) | (data & wmask);
+  // for(int i = 0; i < BLOCK_SIZE; i ++) {
+  //   printf("%x", c->block[i]);
+  // }
+  // printf("\n");
+  // printf("cache write: %x\n", *p);
   mem_write(block_num, c->block);
 }
 
