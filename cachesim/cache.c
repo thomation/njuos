@@ -19,16 +19,17 @@ static int group_count;
 
 void cycle_increase(int n) { cycle_cnt += n; }
 
-// TODO: implement the following functions
-
 static struct cache * handle_miss(struct cache_group * group, uintptr_t block_num, uintptr_t tag) {
-  int replace = 0; // TODO: add complex replace way
+  int replace = -1;
   for(int i = 0; i < block_count_per_group; i ++) {
     struct cache *c = &group->caches[i];
     if(!c->valid) {
       replace = i;
       break;
     }
+  }
+  if(replace < 0) {
+    replace = rand() % block_count_per_group;
   }
   struct cache * c = &group->caches[replace];
   c->tag = tag;
