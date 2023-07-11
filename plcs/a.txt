@@ -102,3 +102,18 @@ Professor: Good question! A few reasons, actually. First, the OS must support
 multi-threaded applications with primitives such as locks and condition varibles, which we’ll talk about soon. Second, the OS itself was the first concurrent
 program — it must access its own memory very carefully or many strange and
 terrible things will happen. Really, it can get quite grisl
+Professor: Good question! A few reasons, actually. First, the OS must support
+multi-threaded applications with primitives such as locks and condition varibles, which we’ll talk about soon. Second, the OS itself was the first concurrent
+program — it must access its own memory very carefully or many strange and
+terrible things will happen. Really, it can get quite grisl
+Professor: Good question! A few reasons, actually. First, the OS must support
+multi-threaded applications with primitives such as locks and condition varibles, which we’ll talk about soon. Second, the OS itself was the first concurrent
+program — it must access its own memory very carefully or many strange and
+terrible things will happen. Really, it can get quite grisl
+Professor: Good question! A few reasons, actually. First, the OS must support
+multi-threaded applications with primitives such as locks and condition varibles, which we’ll talk about soon. Second, the OS itself was the first concurrent
+program — it must access its own memory very carefully or many strange and
+terrible things will happen. Really, it can get quite grisl
+Professor: Good question! A few reasons, actually. First, the OS must support
+multi-threaded applications with primitives such as locks and condition varibles, which we’ll talk about soon. Second, the OS itself was the first concurrent
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
