@@ -12,9 +12,7 @@ int dp[MAXN][MAXN];
 int result;
 volatile int current_round = -1;
 int max_round;
-mutex_t finished_lock[MAX_T] = {MUTEX_INIT()};
-cond_t finished_cond[MAX_T] = {COND_INIT()};
-int finished[MAX_T] = {0};
+volatile int finished[MAX_T] = {0};
 
 
 #define DP(x, y) (((x) >= 0 && (y) >= 0) ? dp[x][y] : 0)
@@ -51,11 +49,8 @@ void Tworker(int id) {
         dp[i][j] = MAX3(skip_a, skip_b, take_both);
       }
     }
-    mutex_lock(&finished_lock[id - 1]);
     finished[id - 1] = 1;
-    cond_signal(&finished_cond[id - 1]);
-    // printf("id %d, finished count:%d, my:%d, current:%d\n", id, finished_count, my_round, current_round);
-    mutex_unlock(&finished_lock[id - 1]);
+    // printf("id %d, finished, my:%d, current:%d\n", id,  my_round, current_round);
   }
 }
 
@@ -96,11 +91,9 @@ int main(int argc, char *argv[]) {
     current_round = 0;
     while(current_round < max_round) {
         for(int i = 0; i < T; i ++) {
-          mutex_lock(&finished_lock[i]);
           while(!finished[i])
-            cond_wait(&finished_cond[i], &finished_lock[i]);
+            ;
           finished[i] = 0;
-          mutex_unlock(&finished_lock[i]);
         }
       current_round ++;
     }
