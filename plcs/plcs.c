@@ -5,15 +5,19 @@
 #include "thread-sync.h"
 
 #define MAXN 10000
+#define MAX_T 16
 int T, N, M;
 char A[MAXN + 1], B[MAXN + 1];
 int dp[MAXN][MAXN];
 int result;
 volatile int current_round = -1;
 int max_round;
-volatile int finished_count = 0;
-mutex_t lock = MUTEX_INIT();
-volatile int compute_count = 0;
+mutex_t finished_lock[MAX_T] = {MUTEX_INIT()};
+cond_t finished_cond[MAX_T] = {COND_INIT()};
+int finished[MAX_T] = {0};
+mutex_t round_lock = MUTEX_INIT();
+cond_t round_cond = COND_INIT();
+
 
 #define DP(x, y) (((x) >= 0 && (y) >= 0) ? dp[x][y] : 0)
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
@@ -22,8 +26,10 @@ volatile int compute_count = 0;
 void Tworker(int id) {
   int my_round = -1;
   while(current_round < max_round) {
+    mutex_lock(&round_lock);
     if(my_round == current_round)
-      continue;
+      cond_wait(&round_cond, &round_lock);
+    mutex_unlock(&round_lock);
     my_round = current_round;
     // find the tasks for me of current round
     int task_count = my_round < N ? my_round + 1 : 2 * N - 1 - my_round;
@@ -47,15 +53,13 @@ void Tworker(int id) {
         int skip_b = DP(i, j - 1);
         int take_both = DP(i - 1, j - 1) + (A[i] == B[j]);
         dp[i][j] = MAX3(skip_a, skip_b, take_both);
-        // mutex_lock(&lock);
-        // compute_count ++;
-        // mutex_unlock(&lock);
       }
     }
-    mutex_lock(&lock);
-    finished_count ++;
+    mutex_lock(&finished_lock[id - 1]);
+    finished[id - 1] = 1;
+    cond_signal(&finished_cond[id - 1]);
     // printf("id %d, finished count:%d, my:%d, current:%d\n", id, finished_count, my_round, current_round);
-    mutex_unlock(&lock);
+    mutex_unlock(&finished_lock[id - 1]);
   }
 }
 
@@ -67,7 +71,6 @@ void raw_worker() {
       int skip_b = DP(i, j - 1);
       int take_both = DP(i - 1, j - 1) + (A[i] == B[j]);
       dp[i][j] = MAX3(skip_a, skip_b, take_both);
-      compute_count ++;
     }
   }
 
@@ -84,33 +87,36 @@ int main(int argc, char *argv[]) {
   M = strlen(B);
   assert(M == N);
   T = atoi(argv[1]);
+  assert(T < MAX_T);
   if(T == 0) {
     printf("Single Thread Version\n");
     raw_worker();
-    printf("Comput count: %d\n", compute_count);
   } else {
     printf("Multiple Threads Version\n");
     max_round = N * 2 - 1;
     for (int i = 0; i < T; i++) {
       create(Tworker);
     }
-    mutex_lock(&lock);
+    mutex_lock(&round_lock);
     current_round = 0;
-    finished_count = 0;
-    mutex_unlock(&lock);
+    cond_broadcast(&round_cond);
+    mutex_unlock(&round_lock);
     while(current_round < max_round) {
-      while(finished_count < T) {
-        // printf("%d\n", finished_count);
-      }
-      mutex_lock(&lock);
+        for(int i = 0; i < T; i ++) {
+          mutex_lock(&finished_lock[i]);
+          while(!finished[i])
+            cond_wait(&finished_cond[i], &finished_lock[i]);
+          finished[i] = 0;
+          mutex_unlock(&finished_lock[i]);
+        }
+      mutex_lock(&round_lock);
       current_round ++;
-      finished_count = 0;
-      mutex_unlock(&lock);
+      cond_broadcast(&round_cond);
+      mutex_unlock(&round_lock);
     }
 
     join();  // Wait for all workers
     result = dp[N - 1][M - 1];
-    // printf("Compute count:%d\n", compute_count);
   }
   printf("%d\n", result);
 }
