@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
   M = strlen(B);
   assert(M == N);
   T = atoi(argv[1]);
-  if(T == 1) {
+  if(T == 0) {
     printf("Single Thread Version\n");
     raw_worker();
     printf("Comput count: %d\n", compute_count);
@@ -108,6 +108,7 @@ int main(int argc, char *argv[]) {
     }
 
     join();  // Wait for all workers
+    result = dp[N - 1][M - 1];
     printf("Compute count:%d\n", compute_count);
   }
   printf("%d\n", result);
