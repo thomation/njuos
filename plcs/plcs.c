@@ -13,36 +13,47 @@ volatile int current_round = -1;
 int max_round;
 volatile int finished_count = 0;
 mutex_t lock = MUTEX_INIT();
+volatile int compute_count = 0;
 
 #define DP(x, y) (((x) >= 0 && (y) >= 0) ? dp[x][y] : 0)
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MAX3(x, y, z) MAX(MAX(x, y), z)
 
 void Tworker(int id) {
-  // only once
-  if (id == 1) {
-    for (int i = 0; i < N; i++) {
-      for (int j = 0; j < M; j++) {
-        // Always try to make DP code more readable
-        int skip_a = DP(i - 1, j);
-        int skip_b = DP(i, j - 1);
-        int take_both = DP(i - 1, j - 1) + (A[i] == B[j]);
-        dp[i][j] = MAX3(skip_a, skip_b, take_both);
-      }
-    }
-    result = dp[N - 1][M - 1];
-  }
   int my_round = -1;
   while(current_round < max_round) {
     if(my_round == current_round)
       continue;
     my_round = current_round;
     // find the tasks for me of current round
-    // if there's no task for me, just record finished
-    // else do then finished
+    int task_count = my_round < N ? my_round + 1 : 2 * N - 1 - my_round;
+    int task_count_per_thread =  task_count / T;
+    if(task_count_per_thread * T < task_count)
+      task_count_per_thread ++;
+    // handle tasks for me
+    for(int t = 0; t < task_count_per_thread; t ++) {
+      int task = (id - 1) * task_count_per_thread + t;
+      if(task < task_count) {
+        int i, j;
+        if(my_round < N) {
+          i = my_round - task;
+          j = task;
+        } else {
+          i = N - 1 - task;
+          j = my_round + 1 - N + task;
+        }
+        int skip_a = DP(i - 1, j);
+        int skip_b = DP(i, j - 1);
+        int take_both = DP(i - 1, j - 1) + (A[i] == B[j]);
+        dp[i][j] = MAX3(skip_a, skip_b, take_both);
+        // mutex_lock(&lock);
+        // compute_count ++;
+        // mutex_unlock(&lock);
+      }
+    }
     mutex_lock(&lock);
     finished_count ++;
-    printf("finished count:%d, my:%d, current:%d\n", finished_count, my_round, current_round);
+    // printf("finished count:%d, my:%d, current:%d\n", finished_count, my_round, current_round);
     mutex_unlock(&lock);
   }
 }
@@ -55,6 +66,7 @@ void raw_worker() {
       int skip_b = DP(i, j - 1);
       int take_both = DP(i - 1, j - 1) + (A[i] == B[j]);
       dp[i][j] = MAX3(skip_a, skip_b, take_both);
+      compute_count ++;
     }
   }
 
@@ -74,6 +86,7 @@ int main(int argc, char *argv[]) {
   if(T == 1) {
     printf("Single Thread Version\n");
     raw_worker();
+    printf("Comput count: %d\n", compute_count);
   } else {
     printf("Multiple Threads Version\n");
     max_round = N * 2 - 1;
@@ -95,6 +108,7 @@ int main(int argc, char *argv[]) {
     }
 
     join();  // Wait for all workers
+    printf("Compute count:%d\n", compute_count);
   }
   printf("%d\n", result);
 }
