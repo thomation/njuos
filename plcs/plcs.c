@@ -15,8 +15,6 @@ int max_round;
 mutex_t finished_lock[MAX_T] = {MUTEX_INIT()};
 cond_t finished_cond[MAX_T] = {COND_INIT()};
 int finished[MAX_T] = {0};
-mutex_t round_lock = MUTEX_INIT();
-cond_t round_cond = COND_INIT();
 
 
 #define DP(x, y) (((x) >= 0 && (y) >= 0) ? dp[x][y] : 0)
@@ -26,10 +24,8 @@ cond_t round_cond = COND_INIT();
 void Tworker(int id) {
   int my_round = -1;
   while(current_round < max_round) {
-    mutex_lock(&round_lock);
-    if(my_round == current_round)
-      cond_wait(&round_cond, &round_lock);
-    mutex_unlock(&round_lock);
+    while(my_round == current_round)
+      continue;
     my_round = current_round;
     // find the tasks for me of current round
     int task_count = my_round < N ? my_round + 1 : 2 * N - 1 - my_round;
@@ -97,10 +93,7 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < T; i++) {
       create(Tworker);
     }
-    mutex_lock(&round_lock);
     current_round = 0;
-    cond_broadcast(&round_cond);
-    mutex_unlock(&round_lock);
     while(current_round < max_round) {
         for(int i = 0; i < T; i ++) {
           mutex_lock(&finished_lock[i]);
@@ -109,10 +102,7 @@ int main(int argc, char *argv[]) {
           finished[i] = 0;
           mutex_unlock(&finished_lock[i]);
         }
-      mutex_lock(&round_lock);
       current_round ++;
-      cond_broadcast(&round_cond);
-      mutex_unlock(&round_lock);
     }
 
     join();  // Wait for all workers
