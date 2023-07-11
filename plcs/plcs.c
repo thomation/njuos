@@ -34,6 +34,7 @@ void Tworker(int id) {
     for(int t = 0; t < task_count_per_thread; t ++) {
       int task = (id - 1) * task_count_per_thread + t;
       if(task < task_count) {
+        // printf("id:%d, compute round %d, task %d of %d\n", id, my_round, task, task_count);
         int i, j;
         if(my_round < N) {
           i = my_round - task;
@@ -53,7 +54,7 @@ void Tworker(int id) {
     }
     mutex_lock(&lock);
     finished_count ++;
-    // printf("finished count:%d, my:%d, current:%d\n", finished_count, my_round, current_round);
+    // printf("id %d, finished count:%d, my:%d, current:%d\n", id, finished_count, my_round, current_round);
     mutex_unlock(&lock);
   }
 }
@@ -109,7 +110,7 @@ int main(int argc, char *argv[]) {
 
     join();  // Wait for all workers
     result = dp[N - 1][M - 1];
-    printf("Compute count:%d\n", compute_count);
+    // printf("Compute count:%d\n", compute_count);
   }
   printf("%d\n", result);
 }
