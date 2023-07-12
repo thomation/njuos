@@ -3,6 +3,8 @@
 #include <assert.h>
 #include "thread.h"
 #include "thread-sync.h"
+#include <sys/time.h>
+
 
 #define MAXN 10000
 #define MAX_T 16
@@ -79,6 +81,8 @@ int main(int argc, char *argv[]) {
   assert(M == N);
   T = atoi(argv[1]);
   assert(T < MAX_T);
+  struct timeval start_time;
+  gettimeofday(&start_time, NULL);
   if(T == 0) {
     printf("Single Thread Version\n");
     raw_worker();
@@ -101,5 +105,9 @@ int main(int argc, char *argv[]) {
     join();  // Wait for all workers
     result = dp[N - 1][M - 1];
   }
-  printf("%d\n", result);
+  struct timeval end_time;
+  gettimeofday(&end_time, NULL);
+  int deltaS = end_time.tv_sec - start_time.tv_sec;
+  printf("ret=%d, time=%ld\n", result, deltaS * 1000000 + end_time.tv_usec - start_time.tv_usec);
+
 }
