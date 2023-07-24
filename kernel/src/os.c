@@ -3,11 +3,22 @@
 static void os_init() {
   pmm->init();
 }
-
+#define TEST_SIZE 128
+static void simple_test() {
+  void * addrs[TEST_SIZE];
+  for(int i = 0; i < TEST_SIZE; i ++) {
+    addrs[i] = pmm->alloc(i + 1);
+  }
+  for(int i = 0; i < TEST_SIZE; i ++) {
+    if(addrs[i])
+      pmm->free(addrs[i]);
+  }
+}
 static void os_run() {
   for (const char *s = "Hello World from CPU #*\n"; *s; s++) {
     putch(*s == '*' ? '0' + cpu_current() : *s);
   }
+  simple_test();
   while (1) ;
 }
 
