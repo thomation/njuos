@@ -36,14 +36,15 @@ static free_node_t * find_free_node(size_t size) {
 static size_t remove_free_node(free_node_t * free, size_t size) {
   assert(free);
   size_t realsize = size;
-  free_node_t * next;
+  free_node_t * next = free->next;
   // Cannot split free node because the free header needs extra space
   if(free->size <= ALLOC_SIZE_WITH_HEADER(size)) {
-    next = free->next;
     realsize = ALLOC_PAYLOAD_SIZE(FREE_SIZE_WITH_HEADER(free->size));
   } else {
-    next = (free_node_t *)((uintptr_t)free + ALLOC_SIZE_WITH_HEADER(size));
-    next->size = free->size - ALLOC_SIZE_WITH_HEADER(size);
+    free_node_t * newnext = (free_node_t *)((uintptr_t)free + ALLOC_SIZE_WITH_HEADER(size));
+    newnext->size = free->size - ALLOC_SIZE_WITH_HEADER(size);
+    newnext->next = next;
+    next = newnext;
   }
   printf("remove_free_node: next %p\n", next);
   if(free_head == free) {
