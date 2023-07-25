@@ -1,7 +1,10 @@
 #include <common.h>
 #define ALLOC_MAGIC_NUM 1234567
-#define REAL_ALLOC_SIZE(size) (size + sizeof(alloc_header_t))
-#define REAL_FREE_SIZE(size) (size + sizeof(free_node_t))
+#define ALLOC_SIZE_WITH_HEADER(size) (size + sizeof(alloc_header_t))
+#define ALLOC_PAYLOAD_SIZE(size) (size - sizeof(alloc_header_t))
+#define FREE_SIZE_WITH_HEADER(size) (size + sizeof(free_node_t))
+#define FREE_PAYLOAD_SIZE(size) (size - sizeof(free_node_t))
+
 typedef struct {
   size_t size;
   int magic;
@@ -14,25 +17,33 @@ typedef struct _free_node_t {
 
 static free_node_t * free_head;
 static void print_free_list() {
+  printf("free_node>>>>>>>>>>>>>>>>>>>>>>>>\n");
+  int i = 0;
   for(free_node_t * p = free_head; p; p = p->next) {
-    printf("free_node %p, size:%d\n", p, p->size);
+    printf("(%p,%d)->", p, p->size);
+    if(++i % 10 == 0)
+      printf("\n");
   }
+  printf("\nfree_node<<<<<<<<<<<<<<<<<<<<<<<<\n");
 }
 static free_node_t * find_free_node(size_t size) {
   for(free_node_t *p = free_head; p; p = p->next) {
-    if(REAL_FREE_SIZE(p->size) >= REAL_ALLOC_SIZE(size))
+    if(FREE_SIZE_WITH_HEADER(p->size) >= ALLOC_SIZE_WITH_HEADER(size))
       return p;
   }
   return NULL;
 }
-static void remove_free_node(free_node_t * free, size_t size) {
+static size_t remove_free_node(free_node_t * free, size_t size) {
   assert(free);
+  size_t realsize = size;
   free_node_t * next;
-  if(free->size <= REAL_ALLOC_SIZE(size)) {
+  // Cannot split free node because the free header needs extra space
+  if(free->size <= ALLOC_SIZE_WITH_HEADER(size)) {
     next = free->next;
+    realsize = ALLOC_PAYLOAD_SIZE(FREE_SIZE_WITH_HEADER(free->size));
   } else {
-    next = (free_node_t *)((uintptr_t)free + REAL_ALLOC_SIZE(size));
-    next->size = free->size - REAL_ALLOC_SIZE(size);
+    next = (free_node_t *)((uintptr_t)free + ALLOC_SIZE_WITH_HEADER(size));
+    next->size = free->size - ALLOC_SIZE_WITH_HEADER(size);
   }
   printf("remove_free_node: next %p\n", next);
   if(free_head == free) {
@@ -45,6 +56,7 @@ static void remove_free_node(free_node_t * free, size_t size) {
     assert(pre);
     pre->next = next;
   }
+  return realsize;
 }
 static void *kalloc(size_t size) {
   printf("kalloc: %d\n", size);
@@ -53,20 +65,26 @@ static void *kalloc(size_t size) {
     printf("kalloc: no enough space for size %u\n", size);
     return NULL;
   }
-  remove_free_node(free, size);
+  size_t realsize = remove_free_node(free, size);
   alloc_header_t * header = (alloc_header_t *) free;
-  header->size = size;
+  header->size = realsize;
   header->magic = ALLOC_MAGIC_NUM;
   printf("kalloc: header %p\n", header);
   print_free_list();
   return header + 1;
 }
-
+static void add_free_node(alloc_header_t * alloc) {
+  size_t size = alloc->size;
+  free_node_t * to_free = (free_node_t *) alloc;
+  to_free->next = free_head;
+  to_free->size = FREE_PAYLOAD_SIZE(ALLOC_SIZE_WITH_HEADER(size));
+  free_head = to_free;
+}
 static void kfree(void *ptr) {
   alloc_header_t * header = (alloc_header_t *)ptr - 1;
   assert(header->magic = ALLOC_MAGIC_NUM);
-  int size = header->size;
-  printf("kfree: %p, size:%d\n", ptr, size);
+  printf("kfree: %p, size:%d\n", ptr, header->size);
+  add_free_node(header);
   print_free_list();
 }
 
