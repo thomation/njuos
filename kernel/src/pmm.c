@@ -21,14 +21,14 @@ static free_node_t * free_head;
 static size_t pmsize;
 
 static void print_free_list() {
-  printf("free_node>>>>>>>>>>>>>>>>>>>>>>>>\n");
-  int i = 0;
-  for(free_node_t * p = free_head; p; p = p->next) {
-    printf("(%p,%p, %u)->", FREE_NODE_START(p), FREE_NODE_END(p), p->size);
-    if(++i % 10 == 0)
-      printf("\n");
-  }
-  printf("\nfree_node<<<<<<<<<<<<<<<<<<<<<<<<\n");
+  // printf("free_node>>>>>>>>>>>>>>>>>>>>>>>>\n");
+  // int i = 0;
+  // for(free_node_t * p = free_head; p; p = p->next) {
+  //   printf("(%p,%p, %u)->", FREE_NODE_START(p), FREE_NODE_END(p), p->size);
+  //   if(++i % 10 == 0)
+  //     printf("\n");
+  // }
+  // printf("\nfree_node<<<<<<<<<<<<<<<<<<<<<<<<\n");
   size_t size = 0;
   size_t count = 0;
   for(free_node_t *p = free_head; p; p = p->next) {

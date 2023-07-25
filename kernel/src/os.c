@@ -3,7 +3,7 @@
 static void os_init() {
   pmm->init();
 }
-#define TEST_SIZE 10
+#define TEST_SIZE 128
 static void simple_test() {
   void * addrs[TEST_SIZE];
   for(int i = 0; i < TEST_SIZE; i ++) {
@@ -24,8 +24,8 @@ static void os_run() {
   }
   printf("test start\n");
   simple_test();
-  // simple_test();
-  // simple_test();
+  simple_test();
+  simple_test();
   printf("test end\n");
   while (1) ;
 }
