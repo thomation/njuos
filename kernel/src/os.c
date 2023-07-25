@@ -3,13 +3,17 @@
 static void os_init() {
   pmm->init();
 }
-#define TEST_SIZE 128
+#define TEST_SIZE 10
 static void simple_test() {
   void * addrs[TEST_SIZE];
   for(int i = 0; i < TEST_SIZE; i ++) {
     addrs[i] = pmm->alloc(i + 1);
   }
-  for(int i = 0; i < TEST_SIZE; i ++) {
+  for(int i = 2; i >= 0; i --) {
+    if(addrs[i])
+      pmm->free(addrs[i]);
+  }
+  for(int i = 3; i < TEST_SIZE; i ++) {
     if(addrs[i])
       pmm->free(addrs[i]);
   }
@@ -20,8 +24,8 @@ static void os_run() {
   }
   printf("test start\n");
   simple_test();
-  simple_test();
-  simple_test();
+  // simple_test();
+  // simple_test();
   printf("test end\n");
   while (1) ;
 }

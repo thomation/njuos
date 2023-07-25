@@ -4,6 +4,8 @@
 #define ALLOC_PAYLOAD_SIZE(size) (size - sizeof(alloc_header_t))
 #define FREE_SIZE_WITH_HEADER(size) (size + sizeof(free_node_t))
 #define FREE_PAYLOAD_SIZE(size) (size - sizeof(free_node_t))
+#define FREE_NODE_START(node) ((uintptr_t)node)
+#define FREE_NODE_END(node) ((uintptr_t)node + FREE_SIZE_WITH_HEADER(node->size))
 
 typedef struct {
   size_t size;
@@ -19,14 +21,14 @@ static free_node_t * free_head;
 static size_t pmsize;
 
 static void print_free_list() {
-  // printf("free_node>>>>>>>>>>>>>>>>>>>>>>>>\n");
-  // int i = 0;
-  // for(free_node_t * p = free_head; p; p = p->next) {
-  //   printf("(%p,%d)->", p, p->size);
-  //   if(++i % 10 == 0)
-  //     printf("\n");
-  // }
-  // printf("\nfree_node<<<<<<<<<<<<<<<<<<<<<<<<\n");
+  printf("free_node>>>>>>>>>>>>>>>>>>>>>>>>\n");
+  int i = 0;
+  for(free_node_t * p = free_head; p; p = p->next) {
+    printf("(%p,%p, %u)->", FREE_NODE_START(p), FREE_NODE_END(p), p->size);
+    if(++i % 10 == 0)
+      printf("\n");
+  }
+  printf("\nfree_node<<<<<<<<<<<<<<<<<<<<<<<<\n");
   size_t size = 0;
   size_t count = 0;
   for(free_node_t *p = free_head; p; p = p->next) {
@@ -56,7 +58,7 @@ static size_t remove_free_node(free_node_t * free, size_t size) {
     newnext->next = next;
     next = newnext;
   }
-  printf("remove_free_node: next %p\n", next);
+  // printf("remove_free_node: next %p\n", next);
   if(free_head == free) {
     free_head = next;
   } else {
@@ -84,12 +86,46 @@ static void *kalloc(size_t size) {
   print_free_list();
   return header + 1;
 }
+static free_node_t * find_left_neighbor(free_node_t * node) {
+  for(free_node_t * p = free_head; p; p = p->next) {
+    if(FREE_NODE_END(p) == FREE_NODE_START(node))
+      return p;
+  }
+  return NULL;
+}
+static free_node_t * find_right_neighbor(free_node_t * node) {
+  for(free_node_t * p = free_head; p; p = p->next) {
+    if(FREE_NODE_START(p) == FREE_NODE_END(node))
+      return p;
+  }
+  return NULL;
+}
+
 static void add_free_node(alloc_header_t * alloc) {
   size_t size = alloc->size;
   free_node_t * to_free = (free_node_t *) alloc;
-  to_free->next = free_head;
-  to_free->size = FREE_PAYLOAD_SIZE(ALLOC_SIZE_WITH_HEADER(size));
-  free_head = to_free;
+  free_node_t * left = find_left_neighbor(to_free);
+  free_node_t * right = find_right_neighbor(to_free);
+  if(left && right) {
+    printf("left + right\n");
+    left->size += ALLOC_SIZE_WITH_HEADER(size);
+    left->size += FREE_SIZE_WITH_HEADER(right->size);
+    remove_free_node(right, right->size);
+  } else if(left) {
+    printf("left only\n");
+    left->size += ALLOC_SIZE_WITH_HEADER(size);
+  } else if(right) {
+    printf("right only\n");
+    to_free->size += FREE_SIZE_WITH_HEADER(right->size);
+    remove_free_node(right, right->size);
+    to_free->next = free_head;
+    free_head = to_free;
+  } else {
+    printf("no neightbour\n");
+    to_free->next = free_head;
+    to_free->size = FREE_PAYLOAD_SIZE(ALLOC_SIZE_WITH_HEADER(size));
+    free_head = to_free;
+  }
 }
 static void kfree(void *ptr) {
   alloc_header_t * header = (alloc_header_t *)ptr - 1;
