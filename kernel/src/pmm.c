@@ -16,6 +16,8 @@ typedef struct _free_node_t {
 } free_node_t;
 
 static free_node_t * free_head;
+static size_t pmsize;
+
 static void print_free_list() {
   // printf("free_node>>>>>>>>>>>>>>>>>>>>>>>>\n");
   // int i = 0;
@@ -31,7 +33,8 @@ static void print_free_list() {
     size += p->size;
     count ++;
   }
-  printf("free node count: %u size %u\n", count, size);
+  size_t real = count * sizeof(free_node_t) + size;
+  printf("free node count: %u size %u, real %u, pmsize %u\n", count, size, real, pmsize);
 }
 static free_node_t * find_free_node(size_t size) {
   for(free_node_t *p = free_head; p; p = p->next) {
@@ -95,9 +98,8 @@ static void kfree(void *ptr) {
   add_free_node(header);
   print_free_list();
 }
-
 static void pmm_init() {
-  uintptr_t pmsize = ((uintptr_t)heap.end - (uintptr_t)heap.start);
+  pmsize = ((uintptr_t)heap.end - (uintptr_t)heap.start);
   printf("pmm_init %d MiB heap: [%p, %p)\n", pmsize >> 20, heap.start, heap.end);
   free_head = (free_node_t *)heap.start;
   free_head->size = pmsize - sizeof(free_node_t);
