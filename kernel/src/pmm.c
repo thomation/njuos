@@ -17,14 +17,21 @@ typedef struct _free_node_t {
 
 static free_node_t * free_head;
 static void print_free_list() {
-  printf("free_node>>>>>>>>>>>>>>>>>>>>>>>>\n");
-  int i = 0;
-  for(free_node_t * p = free_head; p; p = p->next) {
-    printf("(%p,%d)->", p, p->size);
-    if(++i % 10 == 0)
-      printf("\n");
+  // printf("free_node>>>>>>>>>>>>>>>>>>>>>>>>\n");
+  // int i = 0;
+  // for(free_node_t * p = free_head; p; p = p->next) {
+  //   printf("(%p,%d)->", p, p->size);
+  //   if(++i % 10 == 0)
+  //     printf("\n");
+  // }
+  // printf("\nfree_node<<<<<<<<<<<<<<<<<<<<<<<<\n");
+  size_t size = 0;
+  size_t count = 0;
+  for(free_node_t *p = free_head; p; p = p->next) {
+    size += p->size;
+    count ++;
   }
-  printf("\nfree_node<<<<<<<<<<<<<<<<<<<<<<<<\n");
+  printf("free node count: %u size %u\n", count, size);
 }
 static free_node_t * find_free_node(size_t size) {
   for(free_node_t *p = free_head; p; p = p->next) {
