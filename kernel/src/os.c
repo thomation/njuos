@@ -3,7 +3,7 @@
 static void os_init() {
   pmm->init();
 }
-#define TEST_SIZE 128
+#define TEST_SIZE 10
 static void simple_test() {
   void * addrs[TEST_SIZE];
   for(int i = 0; i < TEST_SIZE; i ++) {
@@ -19,14 +19,14 @@ static void simple_test() {
   }
 }
 static void os_run() {
+  printf("cpu count:%d\n", cpu_count());
   for (const char *s = "Hello World from CPU #*\n"; *s; s++) {
     putch(*s == '*' ? '0' + cpu_current() : *s);
   }
-  printf("test start\n");
+  printf("test start %d\n", cpu_current());
   simple_test();
   simple_test();
-  simple_test();
-  printf("test end\n");
+  printf("test end %d\n", cpu_current());
   while (1) ;
 }
 
