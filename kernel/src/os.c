@@ -1,13 +1,14 @@
 #include <common.h>
 
 static void os_init() {
+  printf("cpu count:%d\n", cpu_count());
   pmm->init();
 }
-#define TEST_SIZE 10
-static void simple_test() {
+#define TEST_SIZE 100
+static void simple_test(int cpu) {
   void * addrs[TEST_SIZE];
   for(int i = 0; i < TEST_SIZE; i ++) {
-    addrs[i] = pmm->alloc(i + 1);
+    addrs[i] = pmm->alloc(i + 1 + cpu * 1000);
   }
   for(int i = 2; i >= 0; i --) {
     if(addrs[i])
@@ -19,14 +20,11 @@ static void simple_test() {
   }
 }
 static void os_run() {
-  printf("cpu count:%d\n", cpu_count());
   for (const char *s = "Hello World from CPU #*\n"; *s; s++) {
     putch(*s == '*' ? '0' + cpu_current() : *s);
   }
-  printf("test start %d\n", cpu_current());
-  simple_test();
-  simple_test();
-  printf("test end %d\n", cpu_current());
+  simple_test(cpu_current());
+  simple_test(cpu_current());
   while (1) ;
 }
 

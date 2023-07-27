@@ -110,21 +110,21 @@ static void add_free_node(alloc_header_t * alloc) {
   free_node_t * left = find_left_neighbor(to_free);
   free_node_t * right = find_right_neighbor(to_free);
   if(left && right) {
-    printf("left + right\n");
+    // printf("left + right\n");
     left->size += ALLOC_SIZE_WITH_HEADER(size);
     left->size += FREE_SIZE_WITH_HEADER(right->size);
     remove_free_node(right, right->size);
   } else if(left) {
-    printf("left only\n");
+    // printf("left only\n");
     left->size += ALLOC_SIZE_WITH_HEADER(size);
   } else if(right) {
-    printf("right only\n");
+    // printf("right only\n");
     to_free->size += FREE_SIZE_WITH_HEADER(right->size);
     remove_free_node(right, right->size);
     to_free->next = free_head;
     free_head = to_free;
   } else {
-    printf("no neightbour\n");
+    // printf("no neightbour\n");
     to_free->next = free_head;
     to_free->size = FREE_PAYLOAD_SIZE(ALLOC_SIZE_WITH_HEADER(size));
     free_head = to_free;
