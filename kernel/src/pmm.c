@@ -132,10 +132,10 @@ static void add_free_node(alloc_header_t * alloc) {
   }
 }
 static void kfree(void *ptr) {
-  lock(&alloc_lock);
   alloc_header_t * header = (alloc_header_t *)ptr - 1;
   assert(header->magic = ALLOC_MAGIC_NUM);
   printf("kfree: %p, size:%d\n", ptr, header->size);
+  lock(&alloc_lock);
   add_free_node(header);
   print_free_list();
   unlock(&alloc_lock);
