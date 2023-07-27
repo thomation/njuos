@@ -77,16 +77,17 @@ static void *kalloc(size_t size) {
   free_node_t * free = find_free_node(size);
   if(!free) {
     printf("kalloc: no enough space for size %u\n", size);
+    unlock(&alloc_lock);
     return NULL;
   }
   size_t realsize = remove_free_node(free, size);
+  print_free_list();
+  unlock(&alloc_lock);
   alloc_header_t * header = (alloc_header_t *) free;
   header->size = realsize;
   header->magic = ALLOC_MAGIC_NUM;
   printf("kalloc: header %p\n", header);
-  print_free_list();
   void * ret = header + 1;
-  unlock(&alloc_lock);
   return ret;
 }
 static free_node_t * find_left_neighbor(free_node_t * node) {
