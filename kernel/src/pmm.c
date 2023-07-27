@@ -19,7 +19,7 @@ typedef struct _free_node_t {
 
 static free_node_t * free_head;
 static size_t pmsize;
-
+static lock_t alloc_lock;
 static void print_free_list() {
   // printf("free_node>>>>>>>>>>>>>>>>>>>>>>>>\n");
   // int i = 0;
@@ -72,6 +72,7 @@ static size_t remove_free_node(free_node_t * free, size_t size) {
   return realsize;
 }
 static void *kalloc(size_t size) {
+  lock(&alloc_lock);
   printf("kalloc: %d\n", size);
   free_node_t * free = find_free_node(size);
   if(!free) {
@@ -84,7 +85,9 @@ static void *kalloc(size_t size) {
   header->magic = ALLOC_MAGIC_NUM;
   printf("kalloc: header %p\n", header);
   print_free_list();
-  return header + 1;
+  void * ret = header + 1;
+  unlock(&alloc_lock);
+  return ret;
 }
 static free_node_t * find_left_neighbor(free_node_t * node) {
   for(free_node_t * p = free_head; p; p = p->next) {
@@ -128,11 +131,13 @@ static void add_free_node(alloc_header_t * alloc) {
   }
 }
 static void kfree(void *ptr) {
+  lock(&alloc_lock);
   alloc_header_t * header = (alloc_header_t *)ptr - 1;
   assert(header->magic = ALLOC_MAGIC_NUM);
   printf("kfree: %p, size:%d\n", ptr, header->size);
   add_free_node(header);
   print_free_list();
+  unlock(&alloc_lock);
 }
 static void pmm_init() {
   pmsize = ((uintptr_t)heap.end - (uintptr_t)heap.start);
@@ -141,6 +146,7 @@ static void pmm_init() {
   free_head->size = pmsize - sizeof(free_node_t);
   free_head->next = NULL;
   printf("pmm_init free_head: %p, free_size:%d\n", free_head, free_head->size);
+  init_lock(&alloc_lock);
 }
 
 MODULE_DEF(pmm) = {
