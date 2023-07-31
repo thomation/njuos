@@ -87,7 +87,11 @@ static void *kalloc(size_t size) {
   header->size = realsize;
   header->magic = ALLOC_MAGIC_NUM;
   printf("kalloc: header %p\n", header);
-  void * ret = header + 1;
+  uint8_t * ret = (uint8_t*)(header + 1);
+  for(int i = 0; i < header->size; i ++) {
+    assert(ret[i] != 0xcd);
+    ret[i] = 0xcd;
+  }
   return ret;
 }
 static free_node_t * find_left_neighbor(free_node_t * node) {
@@ -135,6 +139,7 @@ static void kfree(void *ptr) {
   alloc_header_t * header = (alloc_header_t *)ptr - 1;
   assert(header->magic = ALLOC_MAGIC_NUM);
   printf("kfree: %p, size:%d\n", ptr, header->size);
+  memset(ptr, 0xdd, header->size);
   lock(&alloc_lock);
   add_free_node(header);
   print_free_list();
@@ -143,6 +148,7 @@ static void kfree(void *ptr) {
 static void pmm_init() {
   pmsize = ((uintptr_t)heap.end - (uintptr_t)heap.start);
   printf("pmm_init %d MiB heap: [%p, %p)\n", pmsize >> 20, heap.start, heap.end);
+  memset(heap.start, 0xdd, pmsize);
   free_head = (free_node_t *)heap.start;
   free_head->size = pmsize - sizeof(free_node_t);
   free_head->next = NULL;
