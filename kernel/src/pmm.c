@@ -7,6 +7,10 @@
 #define FREE_NODE_START(node) ((uintptr_t)node)
 #define FREE_NODE_END(node) ((uintptr_t)node + FREE_SIZE_WITH_HEADER(node->size))
 
+typedef struct _lock_t {
+  int flag;
+} lock_t;
+
 typedef struct {
   size_t size;
   int magic;
@@ -20,6 +24,17 @@ typedef struct _free_node_t {
 static free_node_t * free_head;
 static size_t pmsize;
 static lock_t alloc_lock;
+static void init_lock(lock_t *lock) {
+    lock->flag = 0;
+}
+static void lock(lock_t *lock) {
+    while(atomic_xchg(&lock->flag, 1) == 1)
+        // spin wait
+        ;
+}
+static void unlock(lock_t *lock) {
+    lock->flag = 0;
+}
 static void print_free_list() {
   // printf("free_node>>>>>>>>>>>>>>>>>>>>>>>>\n");
   // int i = 0;
