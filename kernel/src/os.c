@@ -7,15 +7,10 @@ typedef struct _event_handler_node_t {
 } event_handler_node_t;
 
 static event_handler_node_t *event_handler_head;
-static Context *on_timer(Event ev, Context *context) {
-  printf("on_timer %d\n", cpu_current());
-  return context;
-}
 static void os_init() {
   printf("cpu count:%d\n", cpu_count());
   pmm->init();
   kmt->init();
-  os->on_irq(10, EVENT_IRQ_TIMER, on_timer); 
 }
 #if TEST_ALLOC
 #define TEST_SIZE 100
@@ -58,6 +53,7 @@ static Context *os_trap(Event ev, Context *ctx) {
   return next;
 }
 static void os_on_irq(int seq, int event, handler_t handler) {
+  // printf("os_on_irq %d \n", seq);
   event_handler_node_t * new_node = pmm->alloc(sizeof(event_handler_node_t));
   assert(new_node);
   new_node->seq = seq;
@@ -65,19 +61,22 @@ static void os_on_irq(int seq, int event, handler_t handler) {
   new_node->handler = handler;
   new_node->next = NULL;
   if(event_handler_head == NULL) {
+    // printf("os_on_irq set head\n");
     event_handler_head = new_node;
   } else {
     event_handler_node_t * p = event_handler_head;
     while(p && p->seq < new_node->seq)
       p = p->next;
+    // printf("os_on_irq find node %p of seq >= %d \n", p, seq);
     if(p) {
       new_node->next = p->next;
       p->next = new_node;
     } else {
+      // printf("os_on_irq append to the tail\n");
       event_handler_node_t * q = event_handler_head;
       while(q->next)
         q = q->next;
-      q->next->next = new_node;
+      q->next = new_node;
     }
   }
 }
