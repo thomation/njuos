@@ -1,9 +1,21 @@
 #include <common.h>
+typedef struct _event_handler_node_t {
+  int seq;
+  int event;
+  handler_t handler;
+  struct _event_handler_node_t * next; 
+} event_handler_node_t;
 
+static event_handler_node_t *event_handler_head;
+static Context *on_timer(Event ev, Context *context) {
+  printf("on_timer %d\n", cpu_current());
+  return context;
+}
 static void os_init() {
   printf("cpu count:%d\n", cpu_count());
   pmm->init();
   kmt->init();
+  os->on_irq(10, EVENT_IRQ_TIMER, on_timer); 
 }
 #if TEST_ALLOC
 #define TEST_SIZE 100
@@ -34,11 +46,40 @@ static void os_run() {
   while (1) ;
 }
 static Context *os_trap(Event ev, Context *ctx) {
-  printf("on_interrupt event %d\n", ev.event);
-  return ctx;
+  Context *next = NULL;
+  for(event_handler_node_t *h = event_handler_head; h; h = h->next) {
+    if (h->event == EVENT_NULL || h->event == ev.event) {
+      Context *r = h->handler(ev, ctx);
+      panic_on(r && next, "returning multiple contexts");
+      if (r) next = r;
+    }
+  }
+  panic_on(!next, "returning NULL context");
+  return next;
 }
 static void os_on_irq(int seq, int event, handler_t handler) {
-
+  event_handler_node_t * new_node = pmm->alloc(sizeof(event_handler_node_t));
+  assert(new_node);
+  new_node->seq = seq;
+  new_node->event = event;
+  new_node->handler = handler;
+  new_node->next = NULL;
+  if(event_handler_head == NULL) {
+    event_handler_head = new_node;
+  } else {
+    event_handler_node_t * p = event_handler_head;
+    while(p && p->seq < new_node->seq)
+      p = p->next;
+    if(p) {
+      new_node->next = p->next;
+      p->next = new_node;
+    } else {
+      event_handler_node_t * q = event_handler_head;
+      while(q->next)
+        q = q->next;
+      q->next->next = new_node;
+    }
+  }
 }
 MODULE_DEF(os) = {
   .init = os_init,
