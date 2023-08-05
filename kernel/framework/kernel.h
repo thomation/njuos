@@ -1,3 +1,5 @@
+#ifndef __KERNAL_H__
+#define __KERNAL_H__
 #include <am.h>
 
 #define MODULE(mod) \
@@ -44,3 +46,4 @@ MODULE(dev) {
   void (*init)();
   device_t *(*lookup)(const char *name);
 };
+#endif
