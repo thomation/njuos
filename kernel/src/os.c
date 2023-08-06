@@ -41,6 +41,7 @@ static void os_run() {
   while (1) ;
 }
 static Context *os_trap(Event ev, Context *ctx) {
+  panic_on(ev.event == EVENT_ERROR, ev.msg);
   Context *next = NULL;
   for(event_handler_node_t *h = event_handler_head; h; h = h->next) {
     if (h->event == EVENT_NULL || h->event == ev.event) {
