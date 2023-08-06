@@ -5,7 +5,6 @@ static int next_thread_id;
 task_t * task_list_head;
 task_t * task_list_tail;
 static Context *kmt_context_save(Event ev, Context *context) {
-  iset(false);
   int cpu = cpu_current();
   printf("kmt_context_save cpu %d context %p >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", cpu, context);
   for(task_t * p = task_list_head; p; p = p->next) {
@@ -16,12 +15,10 @@ static Context *kmt_context_save(Event ev, Context *context) {
       break;
     }
   }
-  iset(true);
   printf("kmt_context_save %d <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", cpu);
   return NULL;
 }
 static Context *kmt_schedule(Event ev, Context *context) {
-  iset(false);
   int cpu = cpu_current();
   printf("kmt_schedule cpu %d, context %p >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", cpu, context);
   task_t * current = NULL;
@@ -56,7 +53,6 @@ static Context *kmt_schedule(Event ev, Context *context) {
     // no task
   }
   printf("kmt_schedule cpu %d context %p <<<<<<<<<<<<<<<<<<<<<<<\n", cpu, new_context);
-  iset(true);
   return new_context;
 }
 static void kmt_init() {
@@ -84,10 +80,12 @@ int kmt_create(task_t *task, const char *name, void (*entry)(void *arg), void *a
   task->status = TASK_STATUS_READY;
   task->cpu = -1;
   task->next = NULL;
-  Area stack    = (Area) { task->stack, task->stack + THREAD_STACK_SIZE};
+  task->entry = entry;
+  Area stack  = (Area) { task->stack, task->stack + THREAD_STACK_SIZE};
   task->context = kcontext(stack, task->entry, (void *)task->name);
   task_list_tail->next = task;
   task_list_tail = task_list_tail->next;
+  printf("task %d, context %p, stack (%p, %p)\n", task->id, task->context, task->stack, task->stack + THREAD_STACK_SIZE);
   print_tasks();
   return task->id;
 }
