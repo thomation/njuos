@@ -2,15 +2,22 @@
 #include <common.h>
 #include <os.h>
 
-static void producer(void *arg) {
-  printf("producer\n");
-}
-static void consumer(void *arg) {
-  printf("consumer\n");
+static int locked = 0;
+static void lock()   { while (atomic_xchg(&locked, 1)); }
+static void unlock() { atomic_xchg(&locked, 0); }
+
+void func(void *arg) {
+  while (1) {
+    lock();
+    printf("Thread-%s on CPU #%d\n", arg, cpu_current());
+    unlock();
+    for (int volatile i = 0; i < 100000; i++) ;
+  }
 }
 void test_tasks() {
-  kmt->create(pmm->alloc(sizeof(struct task)), "test-thread-1", producer, "1");
-  kmt->create(pmm->alloc(sizeof(task_t)), "test-thread-2", consumer, "2");
+  kmt->create(pmm->alloc(sizeof(struct task)), "test-thread-1", func, "1");
+  kmt->create(pmm->alloc(sizeof(task_t)), "test-thread-2", func, "2");
+  kmt->create(pmm->alloc(sizeof(task_t)), "test-thread-3", func, "3");
 }
 int main() {
   ioe_init();
