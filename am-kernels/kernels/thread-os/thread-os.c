@@ -20,8 +20,8 @@ Task *currents[MAX_CPU];
 // user-defined tasks
 
 int locked = 0;
-void lock()   { while (atomic_xchg(&locked, 1)); }
-void unlock() { atomic_xchg(&locked, 0); }
+void lock()   {iset(false); while (atomic_xchg(&locked, 1)); }
+void unlock() { atomic_xchg(&locked, 0); iset(true); }
 
 void func(void *arg) {
   while (1) {
@@ -54,7 +54,12 @@ Context *on_interrupt(Event ev, Context *ctx) {
 
 void mp_entry() {
   iset(true);
-  yield();
+  // yield();
+  while(1){
+    lock();
+    printf("main thread on cpu %d\n", cpu_current());
+    unlock();
+  }
 }
 
 int main() {
