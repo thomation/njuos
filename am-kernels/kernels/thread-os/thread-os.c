@@ -20,13 +20,13 @@ Task *currents[MAX_CPU];
 // user-defined tasks
 
 int locked = 0;
-void lock()   {iset(false); while (atomic_xchg(&locked, 1)); }
-void unlock() { atomic_xchg(&locked, 0); iset(true); }
+void lock()   {while (atomic_xchg(&locked, 1)); }
+void unlock() { atomic_xchg(&locked, 0);}
 
 void func(void *arg) {
   while (1) {
     lock();
-    printf("Thread-%s on CPU #%d\n", arg, cpu_current());
+    printf("Thread-%s on CPU #%d, ienabled %d\n", arg, cpu_current(), ienabled());
     unlock();
     for (int volatile i = 0; i < 100000; i++) ;
   }
@@ -49,17 +49,13 @@ Context *on_interrupt(Event ev, Context *ctx) {
   do {
     current = current->next;
   } while ((current - tasks) % cpu_count() != cpu_current());
+  assert(!ienabled());
   return current->context;
 }
 
 void mp_entry() {
   iset(true);
-  // yield();
-  while(1){
-    lock();
-    printf("main thread on cpu %d\n", cpu_current());
-    unlock();
-  }
+  yield();
 }
 
 int main() {
