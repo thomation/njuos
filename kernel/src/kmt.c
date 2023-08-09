@@ -30,11 +30,24 @@ static Context *kmt_schedule(Event ev, Context *context) {
     }
   }
   task_t * next = NULL;
-  for(task_t * p = task_list_head; p; p = p->next) {
-    if(p->status == TASK_STATUS_READY) {
-      next = p;
-      printf("kmt_schedule %d next is %s\n", cpu, p->name);
-      break;
+  // search from current
+  if(current) {
+    for(task_t * p = current; p; p = p->next) {
+      if(p->status == TASK_STATUS_READY) {
+        next = p;
+        printf("kmt_schedule %d next is %s\n", cpu, p->name);
+        break;
+      }
+    }
+  }
+  // search from head
+  if(!next) {
+    for(task_t * p = task_list_head; p; p = p->next) {
+      if(p->status == TASK_STATUS_READY) {
+        next = p;
+        printf("kmt_schedule %d next is %s\n", cpu, p->name);
+        break;
+      }
     }
   }
   Context * new_context = context;
