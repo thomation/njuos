@@ -5,6 +5,7 @@ enum task_status {
   TASK_STATUS_RUNNING = 1,
   TASK_STATUS_READY = 2,
   TASK_STATUS_BLOCK = 3,
+  TASK_STATUS_DEATH = 4,
 };
 struct cpu {
   int ncli;
