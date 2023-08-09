@@ -6,6 +6,11 @@ enum task_status {
   TASK_STATUS_READY = 2,
   TASK_STATUS_BLOCK = 3,
 };
+struct cpu {
+  int ncli;
+  bool enable;
+};
+struct cpu *mycpu();
 struct task {
   union {
     struct {
@@ -22,9 +27,12 @@ struct task {
 };
 
 struct spinlock {
-  // TODO
+  int locked;
+  struct cpu *cpu;
+  const char * name;
 };
 
 struct semaphore {
   // TODO
 };
+

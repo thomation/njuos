@@ -1,4 +1,6 @@
 #include <common.h>
+#include <os.h>
+
 typedef struct _event_handler_node_t {
   int seq;
   int event;
@@ -7,10 +9,16 @@ typedef struct _event_handler_node_t {
 } event_handler_node_t;
 
 static event_handler_node_t *event_handler_head;
+static struct cpu cpus[8];
+struct cpu *mycpu() {
+  return &cpus[cpu_current()];
+}
+spinlock_t trap_lock;
 static void os_init() {
   printf("cpu count:%d\n", cpu_count());
   pmm->init();
   kmt->init();
+  kmt->spin_init(&trap_lock, "trap");
 }
 #if TEST_ALLOC
 #define TEST_SIZE 100
@@ -37,12 +45,15 @@ static void os_run() {
   simple_test(cpu_current());
   simple_test(cpu_current());
   #endif
+  int c = cpu_current();
+  cpus[c].ncli = 0;
   iset(true);
   while (1) ;
 }
 static Context *os_trap(Event ev, Context *ctx) {
   panic_on(ev.event == EVENT_ERROR, ev.msg);
   Context *next = NULL;
+  kmt->spin_lock(&trap_lock);
   for(event_handler_node_t *h = event_handler_head; h; h = h->next) {
     if (h->event == EVENT_NULL || h->event == ev.event) {
       Context *r = h->handler(ev, ctx);
@@ -50,6 +61,7 @@ static Context *os_trap(Event ev, Context *ctx) {
       if (r) next = r;
     }
   }
+  kmt->spin_unlock(&trap_lock);
   panic_on(!next, "returning NULL context");
   return next;
 }
