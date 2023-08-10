@@ -4,38 +4,35 @@
 static int next_thread_id;
 task_t * task_list_head;
 task_t * task_list_tail;
-static Context *kmt_context_save(Event ev, Context *context) {
+static task_t * get_current_task() {
   int cpu = cpu_current();
-  printf("kmt_context_save cpu %d context %p >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", cpu, context);
   for(task_t * p = task_list_head; p; p = p->next) {
     if(p->cpu != cpu) continue;
-    if(p->status == TASK_STATUS_RUNNING) {
-      p->context = context;
-      printf("kmt_context_save %d current is %s\n", cpu, p->name);
-      break;
-    }
+      return p;
   }
-  printf("kmt_context_save %d <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", cpu);
+  return NULL;
+}
+static Context *kmt_context_save(Event ev, Context *context) {
+  // printf("kmt_context_save cpu %d context %p >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", cpu_current(), context);
+  task_t * p = get_current_task();
+  if(p) {
+      p->context = context;
+      // printf("kmt_context_save %d current is %s\n", cpu_current(), p->name);
+  }
+  // printf("kmt_context_save %d <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", cpu);
   return NULL;
 }
 static Context *kmt_schedule(Event ev, Context *context) {
   int cpu = cpu_current();
-  printf("kmt_schedule cpu %d, context %p >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", cpu, context);
-  task_t * current = NULL;
-  for(task_t * p = task_list_head; p; p = p->next) {
-    if(p->status == TASK_STATUS_RUNNING && p->cpu == cpu) {
-      current = p;
-      printf("kmt_schedule %d current is %s\n", cpu, p->name);
-      break;
-    }
-  }
+  // printf("kmt_schedule cpu %d, context %p >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", cpu_current(), context);
+  task_t * current = get_current_task();
   task_t * next = NULL;
   // search from current
   if(current) {
     for(task_t * p = current; p; p = p->next) {
       if(p->status == TASK_STATUS_READY) {
         next = p;
-        printf("kmt_schedule %d next is %s\n", cpu, p->name);
+        // printf("kmt_schedule %d next is %s\n", cpu_current(), p->name);
         break;
       }
     }
@@ -45,7 +42,7 @@ static Context *kmt_schedule(Event ev, Context *context) {
     for(task_t * p = task_list_head; p; p = p->next) {
       if(p->status == TASK_STATUS_READY) {
         next = p;
-        printf("kmt_schedule %d next is %s\n", cpu, p->name);
+        // printf("kmt_schedule %d next is %s\n", cpu_current(), p->name);
         break;
       }
     }
@@ -53,6 +50,7 @@ static Context *kmt_schedule(Event ev, Context *context) {
   Context * new_context = context;
   if(current && next) {
     current->status = TASK_STATUS_READY;
+    current->cpu = -1;
     next->status = TASK_STATUS_RUNNING;
     next->cpu = cpu;
     new_context = next->context;
@@ -65,7 +63,7 @@ static Context *kmt_schedule(Event ev, Context *context) {
   } else {
     // no task
   }
-  printf("kmt_schedule cpu %d context %p <<<<<<<<<<<<<<<<<<<<<<<\n", cpu, new_context);
+  // printf("kmt_schedule cpu %d context %p <<<<<<<<<<<<<<<<<<<<<<<\n", cpu, new_context);
   return new_context;
 }
 static void kmt_init() {
@@ -130,6 +128,26 @@ void kmt_spin_unlock(spinlock_t *lk) {
   if(mycpu()->ncli == 0 && mycpu()->enable)
     iset(mycpu()->enable);
 }
+void kmt_sem_init(sem_t *sem, const char *name, int value) {
+  kmt_spin_init(&sem->lock, name);
+  sem->count = value;
+  sem->name = name;
+}
+void kmt_sem_wait(sem_t *sem) {
+  kmt_spin_lock(&sem->lock);
+  sem->count--;
+  if (sem->count < 0) {
+    task_t * p = get_current_task();
+    p->status = TASK_STATUS_BLOCK;
+  }
+  kmt_spin_unlock(&sem->lock);
+  if (sem->count < 0) {
+    yield();
+  }
+}
+void kmt_sem_signal(sem_t *sem) {
+
+}
 
 MODULE_DEF(kmt) = {
   .init  = kmt_init,
@@ -138,4 +156,7 @@ MODULE_DEF(kmt) = {
   .spin_init = kmt_spin_init,
   .spin_lock = kmt_spin_lock,
   .spin_unlock = kmt_spin_unlock,
+  .sem_init = kmt_init,
+  .sem_wait = kmt_sem_wait,
+  .sem_signal = kmt_sem_signal,
 };

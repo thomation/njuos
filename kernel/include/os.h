@@ -34,6 +34,8 @@ struct spinlock {
 };
 
 struct semaphore {
-  // TODO
+  spinlock_t lock;
+  int count;
+  const char *name;
 };
 
