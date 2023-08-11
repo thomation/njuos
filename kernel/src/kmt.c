@@ -82,12 +82,13 @@ static void print_tasks() {
     printf("task: id=%d, name=%s, status=%d, cpu=%d, context=%p\n", p->id, p->name, p->status, p->cpu, p->context);
   }
 }
-int kmt_create(task_t *task, const char *name, void (*entry)(void *arg), void *arg) {
-  printf("kmt_create task:%s\n", name);
+
+int do_create(task_t *task, const char *name, void (*entry)(void *arg), void *arg, int cpu, enum task_status status) {
+  printf("do_create task:%s\n", name);
   task->name = name;
   task->id = next_thread_id ++;
-  task->status = TASK_STATUS_READY;
-  task->cpu = -1;
+  task->status = status;
+  task->cpu = cpu;
   task->next = NULL;
   task->entry = entry;
   Area stack  = (Area) { task->stack, task->stack + THREAD_STACK_SIZE};
@@ -98,14 +99,18 @@ int kmt_create(task_t *task, const char *name, void (*entry)(void *arg), void *a
   print_tasks();
   return task->id;
 }
-
 static void kmt_init() {
   printf("kmt init\n");
   task_list_head = pmm->alloc(sizeof(task_t));
-  kmt_create(task_list_head, "Idle", NULL, NULL);
+  do_create(task_list_head, "Idle", NULL, NULL, -1, TASK_STATUS_READY);
   task_list_tail = task_list_head;
   os->on_irq(INT_MIN, EVENT_NULL, kmt_context_save);
   os->on_irq(INT_MAX, EVENT_NULL, kmt_schedule);
+}
+int kmt_create(task_t *task, const char *name, void (*entry)(void *arg), void *arg) {
+  printf("kmt_create task:%s\n", name);
+  do_create(task, name, entry, arg, -1, TASK_STATUS_READY);
+  return task->id;
 }
 void kmt_teardown(task_t *task) {
   while(task->status != TASK_STATUS_DEATH)
