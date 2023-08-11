@@ -5,7 +5,7 @@
 static inline task_t *task_alloc() {
   return pmm->alloc(sizeof(task_t));
 }
-#define TEST_SEM
+// #define TEST_SEM
 #ifdef TEST_TASK
 static int locked = 0;
 static void lock()   { while (atomic_xchg(&locked, 1)); }
