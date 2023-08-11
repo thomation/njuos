@@ -5,7 +5,9 @@
 static int locked = 0;
 static void lock()   { while (atomic_xchg(&locked, 1)); }
 static void unlock() { atomic_xchg(&locked, 0); }
-
+static inline task_t *task_alloc() {
+  return pmm->alloc(sizeof(task_t));
+}
 void func(void *arg) {
   while (1) {
     lock();
@@ -15,9 +17,9 @@ void func(void *arg) {
   }
 }
 void test_tasks() {
-  task_t *t1 = pmm->alloc(sizeof(task_t));
-  task_t *t2 = pmm->alloc(sizeof(task_t));
-  task_t *t3 = pmm->alloc(sizeof(task_t));
+  task_t *t1 = task_alloc();
+  task_t *t2 = task_alloc();
+  task_t *t3 = task_alloc();
   kmt->create(t1, "test-thread-1", func, "1");
   kmt->create(t2, "test-thread-2", func, "2");
   kmt->create(t3, "test-thread-3", func, "3");
