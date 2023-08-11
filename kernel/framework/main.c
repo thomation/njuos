@@ -5,7 +5,7 @@
 static inline task_t *task_alloc() {
   return pmm->alloc(sizeof(task_t));
 }
-#define TEST_SEM
+// #define TEST_SEM
 #ifdef TEST_TASK
 static int locked = 0;
 static void lock()   { while (atomic_xchg(&locked, 1)); }
@@ -36,12 +36,12 @@ sem_t empty, fill;
 void Tproduce(void *arg) { while (1) { P(&empty); putch('('); V(&fill);  } }
 void Tconsume(void *arg) { while (1) { P(&fill);  putch(')'); V(&empty); } }
 void test_sem() {
-  kmt->sem_init(&empty, "empty", 1);
+  kmt->sem_init(&empty, "empty", 2);
   kmt->sem_init(&fill,  "fill",  0);
-  for (int i = 0; i < 1; i++) {
+  for (int i = 0; i < 2; i++) {
     kmt->create(task_alloc(), "producer", Tproduce, "1");
   }
-  for (int i = 0; i < 1; i++) {
+  for (int i = 0; i < 3; i++) {
     kmt->create(task_alloc(), "consumer", Tconsume, "1");
   }
 }

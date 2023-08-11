@@ -48,7 +48,9 @@ static void os_run() {
   int c = cpu_current();
   cpus[c].ncli = 0;
   iset(true);
-  while(1);
+  while(1){
+    printf("Idle on cpu %d\n", cpu_current());
+  }
 }
 static Context *os_trap(Event ev, Context *ctx) {
   panic_on(ev.event == EVENT_ERROR, ev.msg);

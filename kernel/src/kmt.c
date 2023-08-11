@@ -1,5 +1,5 @@
 #include <os.h>
-// #define __DEBUG
+#define __DEBUG
 #ifdef __DEBUG
 #define DEBUG(format,...) printf(""format"", ##__VA_ARGS__)  
 #else
@@ -24,6 +24,9 @@ static Context *kmt_context_save(Event ev, Context *context) {
   if(p) {
       p->context = context;
       DEBUG("kmt_context_save %d current is %s, status %d\n", cpu_current(), p->name, p->status);
+  } else {
+    task_list_head->context = context;
+    DEBUG("kmt_context_save %d current is Idle %p, status %d\n", cpu_current(), task_list_head->name, task_list_head->status);
   }
   DEBUG("kmt_context_save %d <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", cpu_current());
   return NULL;
@@ -74,19 +77,6 @@ static Context *kmt_schedule(Event ev, Context *context) {
   DEBUG("kmt_schedule cpu %d context %p <<<<<<<<<<<<<<<<<<<<<<<\n", cpu_current(), new_context);
   return new_context;
 }
-static void kmt_init() {
-  printf("kmt init\n");
-  task_list_head = pmm->alloc(sizeof(task_t));
-  task_list_head->name = "Idle";
-  task_list_head->id = next_thread_id ++;
-  task_list_head->status = TASK_STATUS_NONE;
-  task_list_head->cpu = -1;
-  task_list_head->next = NULL;
-  task_list_head->context = NULL;
-  task_list_tail = task_list_head;
-  os->on_irq(INT_MIN, EVENT_NULL, kmt_context_save);
-  os->on_irq(INT_MAX, EVENT_NULL, kmt_schedule);
-}
 static void print_tasks() {
   for(task_t * p = task_list_head; p; p = p->next) {
     printf("task: id=%d, name=%s, status=%d, cpu=%d, context=%p\n", p->id, p->name, p->status, p->cpu, p->context);
@@ -109,11 +99,21 @@ int kmt_create(task_t *task, const char *name, void (*entry)(void *arg), void *a
   return task->id;
 }
 
+static void kmt_init() {
+  printf("kmt init\n");
+  task_list_head = pmm->alloc(sizeof(task_t));
+  kmt_create(task_list_head, "Idle", NULL, NULL);
+  task_list_tail = task_list_head;
+  os->on_irq(INT_MIN, EVENT_NULL, kmt_context_save);
+  os->on_irq(INT_MAX, EVENT_NULL, kmt_schedule);
+}
 void kmt_teardown(task_t *task) {
   while(task->status != TASK_STATUS_DEATH)
     // wait
     printf("wait %s\n", task->name);
     ; 
+  // TODO: remove from task list
+  // pmm->free(task);
 }
 void kmt_spin_init(spinlock_t *lk, const char *name) {
   lk->locked = 0;
