@@ -136,17 +136,23 @@ void kmt_sem_init(sem_t *sem, const char *name, int value) {
 void kmt_sem_wait(sem_t *sem) {
   kmt_spin_lock(&sem->lock);
   sem->count--;
+  task_t * cur = NULL;
   if (sem->count < 0) {
-    task_t * p = get_current_task();
-    p->status = TASK_STATUS_BLOCK;
+    cur = get_current_task();
+    cur->status = TASK_STATUS_BLOCK;
+    // TODO: in queue
   }
   kmt_spin_unlock(&sem->lock);
-  if (sem->count < 0) {
+  // cur may be set READY by the signal
+  if (cur && cur->status == TASK_STATUS_BLOCK) {
     yield();
   }
 }
 void kmt_sem_signal(sem_t *sem) {
-
+  kmt_spin_lock(&sem->lock);
+  sem->count ++;
+  // TODO: get block task from queue
+  kmt_spin_unlock(&sem->lock);
 }
 
 MODULE_DEF(kmt) = {
