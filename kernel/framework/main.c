@@ -33,16 +33,30 @@ void test_tasks() {
 sem_t empty, fill;
 #define P kmt->sem_wait
 #define V kmt->sem_signal
-void Tproduce(void *arg) { while (1) { P(&empty); putch('('); V(&fill);  } }
-void Tconsume(void *arg) { while (1) { P(&fill);  putch(')'); V(&empty); } }
+void Tproduce(void *arg) {
+  uintptr_t t = (uintptr_t)arg; 
+  while (1) {
+    P(&empty);
+    putch(t + '0');
+    V(&fill);
+  }
+}
+void Tconsume(void *arg) {
+  uintptr_t t = (uintptr_t)arg; 
+  while (1) {
+    P(&fill);
+    putch('a' + t);
+    V(&empty);
+  }
+}
 void test_sem() {
   kmt->sem_init(&empty, "empty", 5);
   kmt->sem_init(&fill,  "fill",  0);
-  for (int i = 0; i < 2; i++) {
-    kmt->create(task_alloc(), "producer", Tproduce, "1");
+  for (uintptr_t i = 0; i < 2; i++) {
+    kmt->create(task_alloc(), "producer", Tproduce, (void*)i);
   }
-  for (int i = 0; i < 2; i++) {
-    kmt->create(task_alloc(), "consumer", Tconsume, "1");
+  for (uintptr_t i = 0; i < 2; i++) {
+    kmt->create(task_alloc(), "consumer", Tconsume, (void*)i);
   }
 }
 #endif
