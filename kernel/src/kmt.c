@@ -1,4 +1,10 @@
 #include <os.h>
+// #define __DEBUG
+#ifdef __DEBUG
+#define DEBUG(format,...) printf("File: "__FILE__", Line: %05d: "format"/n", __LINE__, ##__VA_ARGS__)  
+#else
+#define DEBUG(...)
+#endif
 #define INT_MIN	(-INT_MAX - 1)
 #define INT_MAX	32767
 static int next_thread_id;
@@ -13,18 +19,17 @@ static task_t * get_current_task() {
   return NULL;
 }
 static Context *kmt_context_save(Event ev, Context *context) {
-  // printf("kmt_context_save cpu %d context %p >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", cpu_current(), context);
+  DEBUG("kmt_context_save cpu %d context %p >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", cpu_current(), context);
   task_t * p = get_current_task();
   if(p) {
       p->context = context;
-      // printf("kmt_context_save %d current is %s\n", cpu_current(), p->name);
+      DEBUG("kmt_context_save %d current is %s\n", cpu_current(), p->name);
   }
-  // printf("kmt_context_save %d <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", cpu);
+  DEBUG("kmt_context_save %d <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", cpu_current());
   return NULL;
 }
 static Context *kmt_schedule(Event ev, Context *context) {
-  int cpu = cpu_current();
-  // printf("kmt_schedule cpu %d, context %p >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", cpu_current(), context);
+  DEBUG("kmt_schedule cpu %d, context %p >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", cpu_current(), context);
   task_t * current = get_current_task();
   task_t * next = NULL;
   // search from current
@@ -32,7 +37,7 @@ static Context *kmt_schedule(Event ev, Context *context) {
     for(task_t * p = current; p; p = p->next) {
       if(p->status == TASK_STATUS_READY) {
         next = p;
-        // printf("kmt_schedule %d next is %s\n", cpu_current(), p->name);
+        DEBUG("kmt_schedule %d next is %s\n", cpu_current(), p->name);
         break;
       }
     }
@@ -42,7 +47,7 @@ static Context *kmt_schedule(Event ev, Context *context) {
     for(task_t * p = task_list_head; p; p = p->next) {
       if(p->status == TASK_STATUS_READY) {
         next = p;
-        // printf("kmt_schedule %d next is %s\n", cpu_current(), p->name);
+        DEBUG("kmt_schedule %d next is %s\n", cpu_current(), p->name);
         break;
       }
     }
@@ -52,18 +57,18 @@ static Context *kmt_schedule(Event ev, Context *context) {
     current->status = TASK_STATUS_READY;
     current->cpu = -1;
     next->status = TASK_STATUS_RUNNING;
-    next->cpu = cpu;
+    next->cpu = cpu_current();
     new_context = next->context;
   } else if(current && !next) {
     // schedule current again
   } else if(!current && next) {
     next->status = TASK_STATUS_RUNNING;
-    next->cpu = cpu;
+    next->cpu = cpu_current();
     new_context = next->context;
   } else {
     // no task
   }
-  // printf("kmt_schedule cpu %d context %p <<<<<<<<<<<<<<<<<<<<<<<\n", cpu, new_context);
+  DEBUG("kmt_schedule cpu %d context %p <<<<<<<<<<<<<<<<<<<<<<<\n", cpu_current(), new_context);
   return new_context;
 }
 static void kmt_init() {
@@ -132,15 +137,27 @@ void kmt_sem_init(sem_t *sem, const char *name, int value) {
   kmt_spin_init(&sem->lock, name);
   sem->count = value;
   sem->name = name;
+  sem->wait_list = NULL;
 }
 void kmt_sem_wait(sem_t *sem) {
+  DEBUG("kmt_sem_wait %s, at cpu %d\n", sem->name, cpu_current());
   kmt_spin_lock(&sem->lock);
   sem->count--;
   task_t * cur = NULL;
   if (sem->count < 0) {
     cur = get_current_task();
     cur->status = TASK_STATUS_BLOCK;
-    // TODO: in queue
+    task_node_t * node = pmm->alloc(sizeof(task_node_t));
+    node->task = cur;
+    node->next = NULL;
+    if(!sem->wait_list) {
+      sem->wait_list = node;
+    } else {
+      task_node_t * p = sem->wait_list;
+      while(p->next)
+        p = p->next;
+      p->next = node;
+    }
   }
   kmt_spin_unlock(&sem->lock);
   // cur may be set READY by the signal
@@ -149,9 +166,15 @@ void kmt_sem_wait(sem_t *sem) {
   }
 }
 void kmt_sem_signal(sem_t *sem) {
+  DEBUG("kmt_sem_signal %s, at cpu %d\n", sem->name, cpu_current());
   kmt_spin_lock(&sem->lock);
   sem->count ++;
-  // TODO: get block task from queue
+  if(sem->wait_list) {
+    task_node_t * p = sem->wait_list;
+    sem->wait_list = p->next;
+    p->task->status = TASK_STATUS_READY;
+    pmm->free(p);
+  }
   kmt_spin_unlock(&sem->lock);
 }
 
@@ -162,7 +185,7 @@ MODULE_DEF(kmt) = {
   .spin_init = kmt_spin_init,
   .spin_lock = kmt_spin_lock,
   .spin_unlock = kmt_spin_unlock,
-  .sem_init = kmt_init,
+  .sem_init = kmt_sem_init,
   .sem_wait = kmt_sem_wait,
   .sem_signal = kmt_sem_signal,
 };

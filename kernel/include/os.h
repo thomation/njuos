@@ -12,6 +12,10 @@ struct cpu {
   bool enable;
 };
 struct cpu *mycpu();
+typedef struct task_node {
+  task_t * task;
+  struct task_node * next;
+} task_node_t;
 struct task {
   union {
     struct {
@@ -37,5 +41,6 @@ struct semaphore {
   spinlock_t lock;
   int count;
   const char *name;
+  task_node_t * wait_list;
 };
 

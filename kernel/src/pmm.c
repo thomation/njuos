@@ -44,14 +44,14 @@ static void print_free_list() {
   //     printf("\n");
   // }
   // printf("\nfree_node<<<<<<<<<<<<<<<<<<<<<<<<\n");
-  size_t size = 0;
-  size_t count = 0;
-  for(free_node_t *p = free_head; p; p = p->next) {
-    size += p->size;
-    count ++;
-  }
-  size_t real = count * sizeof(free_node_t) + size;
-  printf("free node count: %u size %u, real %u, pmsize %u\n", count, size, real, pmsize);
+  // size_t size = 0;
+  // size_t count = 0;
+  // for(free_node_t *p = free_head; p; p = p->next) {
+  //   size += p->size;
+  //   count ++;
+  // }
+  // size_t real = count * sizeof(free_node_t) + size;
+  // printf("free node count: %u size %u, real %u, pmsize %u\n", count, size, real, pmsize);
 }
 static free_node_t * find_free_node(size_t size) {
   for(free_node_t *p = free_head; p; p = p->next) {
@@ -88,7 +88,7 @@ static size_t remove_free_node(free_node_t * free, size_t size) {
 }
 static void *kalloc(size_t size) {
   lock(&alloc_lock);
-  printf("kalloc: %d\n", size);
+  // printf("kalloc: %d\n", size);
   free_node_t * free = find_free_node(size);
   if(!free) {
     printf("kalloc: no enough space for size %u\n", size);
@@ -101,7 +101,7 @@ static void *kalloc(size_t size) {
   alloc_header_t * header = (alloc_header_t *) free;
   header->size = realsize;
   header->magic = ALLOC_MAGIC_NUM;
-  printf("kalloc: header %p\n", header);
+  // printf("kalloc: header %p\n", header);
   uint8_t * ret = (uint8_t*)(header + 1);
   for(int i = 0; i < header->size; i ++) {
     assert(ret[i] != 0xcd);
@@ -153,7 +153,7 @@ static void add_free_node(alloc_header_t * alloc) {
 static void kfree(void *ptr) {
   alloc_header_t * header = (alloc_header_t *)ptr - 1;
   assert(header->magic = ALLOC_MAGIC_NUM);
-  printf("kfree: %p, size:%d\n", ptr, header->size);
+  // printf("kfree: %p, size:%d\n", ptr, header->size);
   memset(ptr, 0xdd, header->size);
   lock(&alloc_lock);
   add_free_node(header);
