@@ -1,5 +1,5 @@
 #include <os.h>
-#define __DEBUG
+// #define __DEBUG
 #ifdef __DEBUG
 #define DEBUG(format,...) printf(""format"", ##__VA_ARGS__)  
 #else
@@ -10,6 +10,7 @@
 static int next_thread_id;
 task_t * task_list_head;
 task_t * task_list_tail;
+
 static task_t * get_current_task() {
   int cpu = cpu_current();
   for(task_t * p = task_list_head; p; p = p->next) {
@@ -21,34 +22,33 @@ static task_t * get_current_task() {
 static Context *kmt_context_save(Event ev, Context *context) {
   DEBUG("kmt_context_save cpu %d context %p >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", cpu_current(), context);
   task_t * p = get_current_task();
-  if(p) {
-      p->context = context;
-      DEBUG("kmt_context_save %d current is %s, status %d\n", cpu_current(), p->name, p->status);
-  } else {
-    task_list_head->context = context;
-    DEBUG("kmt_context_save %d current is Idle %p, status %d\n", cpu_current(), task_list_head->name, task_list_head->status);
-  }
+  assert(p); // There is idle task that cannot be blocked
+  p->context = context;
+  DEBUG("kmt_context_save %d current is %s, status %d\n", cpu_current(), p->name, p->status);
   DEBUG("kmt_context_save %d <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", cpu_current());
   return NULL;
+}
+static bool can_schedule(task_t *task)
+{
+  return task->status == TASK_STATUS_READY && (task->cpu == -1 || task->cpu == cpu_current());
 }
 static Context *kmt_schedule(Event ev, Context *context) {
   DEBUG("kmt_schedule cpu %d, context %p >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", cpu_current(), context);
   task_t * current = get_current_task();
+  assert(current);
   task_t * next = NULL;
   // search from current
-  if(current) {
-    for(task_t * p = current; p; p = p->next) {
-      if(p->status == TASK_STATUS_READY) {
-        next = p;
-        DEBUG("kmt_schedule %d next is %s\n", cpu_current(), p->name);
-        break;
-      }
+  for(task_t * p = current; p; p = p->next) {
+    if(can_schedule(p)) {
+      next = p;
+      DEBUG("kmt_schedule %d next is %s\n", cpu_current(), p->name);
+      break;
     }
   }
   // search from head
   if(!next) {
     for(task_t * p = task_list_head; p; p = p->next) {
-      if(p->status == TASK_STATUS_READY) {
+      if(can_schedule(p)) {
         next = p;
         DEBUG("kmt_schedule %d next is %s\n", cpu_current(), p->name);
         break;
@@ -56,20 +56,16 @@ static Context *kmt_schedule(Event ev, Context *context) {
     }
   }
   Context * new_context = context;
-  if(current && next) {
+  if(next) {
     if(current->status == TASK_STATUS_RUNNING)
       current->status = TASK_STATUS_READY;
     current->cpu = -1;
     next->status = TASK_STATUS_RUNNING;
     next->cpu = cpu_current();
     new_context = next->context;
-  } else if(current && !next) {
+  } else if(!next) {
     // schedule current again
     assert(current->status == TASK_STATUS_RUNNING);
-  } else if(!current && next) {
-    next->status = TASK_STATUS_RUNNING;
-    next->cpu = cpu_current();
-    new_context = next->context;
   } else {
     panic("no task");
     // no task
@@ -102,8 +98,11 @@ int do_create(task_t *task, const char *name, void (*entry)(void *arg), void *ar
 static void kmt_init() {
   printf("kmt init\n");
   task_list_head = pmm->alloc(sizeof(task_t));
-  do_create(task_list_head, "Idle", NULL, NULL, -1, TASK_STATUS_READY);
+  do_create(task_list_head, "Head", NULL, NULL, -1, TASK_STATUS_NONE);
   task_list_tail = task_list_head;
+  for(int i = 0; i < cpu_count(); i ++) {
+    do_create(pmm->alloc(sizeof(task_t)), "Idle", NULL, NULL, i, TASK_STATUS_READY);
+  }
   os->on_irq(INT_MIN, EVENT_NULL, kmt_context_save);
   os->on_irq(INT_MAX, EVENT_NULL, kmt_schedule);
 }
