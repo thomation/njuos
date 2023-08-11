@@ -80,7 +80,7 @@ static void print_tasks() {
 }
 
 int do_create(task_t *task, const char *name, void (*entry)(void *arg), void *arg, int cpu, enum task_status status) {
-  printf("do_create task:%s\n", name);
+  printf("do_create task:%s, arg:%p\n", name, arg);
   task->name = name;
   task->id = next_thread_id ++;
   task->status = status;
@@ -88,7 +88,7 @@ int do_create(task_t *task, const char *name, void (*entry)(void *arg), void *ar
   task->next = NULL;
   task->entry = entry;
   Area stack  = (Area) { task->stack, task->stack + THREAD_STACK_SIZE};
-  task->context = kcontext(stack, task->entry, (void *)task->name);
+  task->context = kcontext(stack, task->entry, arg);
   task_list_tail->next = task;
   task_list_tail = task_list_tail->next;
   printf("task %d, context %p, stack (%p, %p)\n", task->id, task->context, task->stack, task->stack + THREAD_STACK_SIZE);
