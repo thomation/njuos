@@ -49,7 +49,7 @@ static void os_run() {
   cpus[c].ncli = 0;
   iset(true);
   while(1){
-    printf("Idle on cpu %d\n", cpu_current());
+    // printf("Idle on cpu %d\n", cpu_current());
   }
 }
 static Context *os_trap(Event ev, Context *ctx) {
