@@ -1,7 +1,7 @@
 #include <os.h>
 // #define __DEBUG
 #ifdef __DEBUG
-#define DEBUG(format,...) printf("File: "__FILE__", Line: %05d: "format"/n", __LINE__, ##__VA_ARGS__)  
+#define DEBUG(format,...) printf(""format"", ##__VA_ARGS__)  
 #else
 #define DEBUG(...)
 #endif
@@ -23,7 +23,7 @@ static Context *kmt_context_save(Event ev, Context *context) {
   task_t * p = get_current_task();
   if(p) {
       p->context = context;
-      DEBUG("kmt_context_save %d current is %s\n", cpu_current(), p->name);
+      DEBUG("kmt_context_save %d current is %s, status %d\n", cpu_current(), p->name, p->status);
   }
   DEBUG("kmt_context_save %d <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", cpu_current());
   return NULL;
@@ -54,18 +54,21 @@ static Context *kmt_schedule(Event ev, Context *context) {
   }
   Context * new_context = context;
   if(current && next) {
-    current->status = TASK_STATUS_READY;
+    if(current->status == TASK_STATUS_RUNNING)
+      current->status = TASK_STATUS_READY;
     current->cpu = -1;
     next->status = TASK_STATUS_RUNNING;
     next->cpu = cpu_current();
     new_context = next->context;
   } else if(current && !next) {
     // schedule current again
+    assert(current->status == TASK_STATUS_RUNNING);
   } else if(!current && next) {
     next->status = TASK_STATUS_RUNNING;
     next->cpu = cpu_current();
     new_context = next->context;
   } else {
+    panic("no task");
     // no task
   }
   DEBUG("kmt_schedule cpu %d context %p <<<<<<<<<<<<<<<<<<<<<<<\n", cpu_current(), new_context);
