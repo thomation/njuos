@@ -34,8 +34,17 @@ int main(int argc, char *argv[]) {
   } else {
     close(pipefd[1]); // close write
     char buf;
+    char line[512];
+    int i = 0;
     while(read(pipefd[0], &buf, 1) > 0) {
       // write(STDOUT_FILENO, &buf, 1);
+      if(buf != '\n') {
+        line[i ++ ] = buf;
+      } else {
+        line[i] = '\0';
+        printf("%s\n", line);
+        i = 0;
+      }
     }
     wait(NULL);
     printf("finished\n");
