@@ -3,15 +3,17 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/wait.h>
-
+#define RESERVE_ARGC 1
 int main(int argc, char *argv[]) {
-  char **exec_argv = malloc(sizeof(char*) * (argc + 1));
+  char **exec_argv = malloc(sizeof(char*) * (argc + RESERVE_ARGC + 1));
   exec_argv[0] = "strace";
+  exec_argv[1] = "-T";
   for(int i = 1; i < argc; i ++) {
-    exec_argv[i] = malloc(sizeof(char) * (strlen(argv[i]) + 1));
-    strcpy(exec_argv[i], argv[i]);
+    int exec_index = i + RESERVE_ARGC;
+    exec_argv[exec_index] = malloc(sizeof(char) * (strlen(argv[i]) + 1));
+    strcpy(exec_argv[exec_index], argv[i]);
   }
-  exec_argv[argc] = NULL;
+  exec_argv[argc + RESERVE_ARGC] = NULL;
   // for(int i = 0; exec_argv[i]; i++) {
   //   printf("%s\n", exec_argv[i]);
   // }
