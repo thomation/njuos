@@ -3,7 +3,54 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <assert.h>
+
 #define RESERVE_ARGC 1
+#define NAME_LEN 32
+#define TIME_LEN 32
+
+typedef struct strace_node {
+  char name[NAME_LEN];
+  float time;
+} strace_node_t;
+
+static strace_node_t lines[128];
+static int lines_count;
+static int find_index_in_line(char * line, char c) {
+  size_t n = strlen(line);
+  for(int i = 0; i < n; i ++) {
+    if(line[i] == c)
+      return i;
+  }
+  return -1;
+}
+static void parse_line(char * line) {
+  printf("%s\n", line);
+  int name_end = find_index_in_line(line, '(');
+  if(name_end < 0) {
+    return;
+  }
+  char name[NAME_LEN];
+  assert(name_end <= NAME_LEN);
+  for(int i = 0; i < name_end; i ++)
+    name[i] = line[i];
+  name[name_end] = '\0';
+  printf("%s\n", name);
+  int time_start = find_index_in_line(line, '<');
+  assert(time_start >= 0);
+  time_start ++;
+  int time_end = find_index_in_line(line, '>');
+  assert(time_end >= 0);
+  char time_str[TIME_LEN];
+  int time_index = 0;
+  for(int i = time_start; i < time_end; i ++) {
+    time_str[time_index ++] = line[i];
+  }
+  time_str[time_index] = '\0';
+  float time;
+  sscanf(time_str, "%f", &time);
+  printf("%f\n", time);
+}
 int main(int argc, char *argv[]) {
   char **exec_argv = malloc(sizeof(char*) * (argc + RESERVE_ARGC + 1));
   exec_argv[0] = "strace";
@@ -44,7 +91,7 @@ int main(int argc, char *argv[]) {
         line[i ++ ] = buf;
       } else {
         line[i] = '\0';
-        printf("%s\n", line);
+        parse_line(line);
         i = 0;
       }
     }
