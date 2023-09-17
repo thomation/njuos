@@ -21,8 +21,26 @@ FILE * create_code_file(const char * path) {
   FILE *p = fopen(path, "w+");
   return p;
 }
+char * parse_func_name(char * line) {
+  char * name = malloc(strlen(line));
+  char * s = &line[3];
+  while(*s == ' ')
+    s ++;
+  // printf("s=%c\n", *s);
+  char * e = s;
+  while(*e != ' ' && *e != '(')
+    e ++;
+  // printf("e=%c\n", *e);
+  for(int i = 0; s + i < e; i ++) 
+    name[i] = *(s + i);
+  name[e - s] = '\0';
+  return name;
+}
 void handle_func(char  * line) {
   printf("Func:%s\n", line);
+  char * name = parse_func_name(line);
+  printf("Func name:%s\n", name);
+  free(name);
 }
 void create_src(char * line) {
   char * code_temple = "#include<stdio.h>\n int main(){int ret = %s; printf(\"%%d\\n\", ret);return 0;}"; 
