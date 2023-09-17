@@ -2,6 +2,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <stdlib.h>
 
 enum CommandType {
   FUNC,
@@ -30,15 +31,29 @@ void create_src(char * line) {
   fprintf(p, "%s\n", code);
   fclose(p);
 }
-void compile_src() {
+int compile_src() {
+  int wstatus = 0;
+  int pipefd[2];
+  if (pipe(pipefd) == -1) {
+    perror("pipe");
+    exit(EXIT_FAILURE);
+  }
   int pid = fork();
   char * main_argv[16] = {"gcc", MAIN_SRC_PATH, "-o", MAIN_TARGET_PATH, NULL};
   if(pid == 0) {
+    close(pipefd[0]); // close read
+    dup2(pipefd[1], STDERR_FILENO);
     execvp(main_argv[0], main_argv);
   } else {
-    int wstatus;
+    close(pipefd[1]); // close write
     wait(&wstatus);
+    if(wstatus != 0) {
+      char buf;
+      while(read(pipefd[0], &buf, 1) > 0)
+        write(STDOUT_FILENO, &buf, 1);
+    }
   }
+  return wstatus;
 }
 void run() {
   int pid = fork();
@@ -53,8 +68,9 @@ void run() {
 void handle_expr(char * line) {
   printf("Expr:%s\n", line);
   create_src(line);
-  compile_src();
-  run();
+  int status = compile_src();
+  if(status == 0)
+    run();
 }
 int main(int argc, char *argv[]) {
   static char line[4096];
