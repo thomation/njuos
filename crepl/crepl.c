@@ -11,6 +11,8 @@ enum CommandType {
 static char code[1024];
 char * MAIN_SRC_PATH = "/tmp/crepl_main.c";
 char * MAIN_TARGET_PATH = "/tmp/crepl_main.out";
+static char * funcs[32];
+static int func_count = 0;
 int parse_line(char * line) {
   if(strlen(line) > 3 && line[0] == 'i' && line[1] == 'n' && line[2] == 't') {
     return FUNC;
@@ -40,7 +42,14 @@ void handle_func(char  * line) {
   printf("Func:%s\n", line);
   char * name = parse_func_name(line);
   printf("Func name:%s\n", name);
-  free(name);
+  for(int i = 0; i < func_count; i ++) {
+    if(strcmp(funcs[i], name) == 0) {
+      printf("Dup name:%s\n", name);
+      free(name);
+      return;
+    }
+  }
+  funcs[func_count ++] = name;
 }
 void create_src(char * line) {
   char * code_temple = "#include<stdio.h>\n int main(){int ret = %s; printf(\"%%d\\n\", ret);return 0;}"; 
