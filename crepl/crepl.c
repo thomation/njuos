@@ -50,15 +50,15 @@ void handle_func(char  * line) {
     }
   }
   funcs[func_count ++] = name;
+  // TODO: compile func
 }
-void create_src(char * line) {
-  char * code_temple = "#include<stdio.h>\n int main(){int ret = %s; printf(\"%%d\\n\", ret);return 0;}"; 
-  sprintf(code, code_temple, line);
+void create_src(char * line, char * code_template) {
+  sprintf(code, code_template, line);
   FILE * p = create_code_file(MAIN_SRC_PATH);
   fprintf(p, "%s\n", code);
   fclose(p);
 }
-int compile_src() {
+int compile_src(char ** compile_cmd) {
   int wstatus = 0;
   int pipefd[2];
   if (pipe(pipefd) == -1) {
@@ -66,11 +66,10 @@ int compile_src() {
     exit(EXIT_FAILURE);
   }
   int pid = fork();
-  char * main_argv[16] = {"gcc", MAIN_SRC_PATH, "-o", MAIN_TARGET_PATH, NULL};
   if(pid == 0) {
     close(pipefd[0]); // close read
     dup2(pipefd[1], STDERR_FILENO);
-    execvp(main_argv[0], main_argv);
+    execvp(compile_cmd[0], compile_cmd);
   } else {
     close(pipefd[1]); // close write
     wait(&wstatus);
@@ -94,8 +93,10 @@ void run() {
 }
 void handle_expr(char * line) {
   printf("Expr:%s\n", line);
-  create_src(line);
-  int status = compile_src();
+  char * code_temple = "#include<stdio.h>\n int main(){int ret = %s; printf(\"%%d\\n\", ret);return 0;}"; 
+  create_src(line, code_temple);
+  char * main_argv[16] = {"gcc", MAIN_SRC_PATH, "-o", MAIN_TARGET_PATH, NULL};
+  int status = compile_src(main_argv);
   if(status == 0)
     run();
 }
