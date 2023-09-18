@@ -103,7 +103,7 @@ void handle_expr(char * line) {
   printf("Expr:%s\n", line);
   char * code_temple = "#include<stdio.h>\n int main(){int ret = %s; printf(\"%%d\\n\", ret);return 0;}"; 
   create_src(MAIN_SRC_PATH, line, code_temple);
-  char * main_argv[16] = {"gcc", MAIN_SRC_PATH, "-o", MAIN_TARGET_PATH, NULL};
+  char * main_argv[16] = {"gcc", MAIN_SRC_PATH, "-L/tmp", "-lcrepl_lab", "-o", MAIN_TARGET_PATH, NULL};
   int status = compile_src(main_argv);
   if(status == 0)
     run();
