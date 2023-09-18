@@ -11,6 +11,9 @@ enum CommandType {
 static char code[1024];
 char * MAIN_SRC_PATH = "/tmp/crepl_main.c";
 char * MAIN_TARGET_PATH = "/tmp/crepl_main.out";
+char * LIB_SRC_PATH_TEMP = "/tmp/crepl_lib_%s.c";
+char * LIB_TARGET_PATH = "/tmp/libcrepl_lab.so";
+
 static char * funcs[32];
 static int func_count = 0;
 int parse_line(char * line) {
@@ -18,10 +21,6 @@ int parse_line(char * line) {
     return FUNC;
   }
   return EXPR;
-}
-FILE * create_code_file(const char * path) {
-  FILE *p = fopen(path, "w+");
-  return p;
 }
 char * parse_func_name(char * line) {
   char * name = malloc(strlen(line));
@@ -38,23 +37,13 @@ char * parse_func_name(char * line) {
   name[e - s] = '\0';
   return name;
 }
-void handle_func(char  * line) {
-  printf("Func:%s\n", line);
-  char * name = parse_func_name(line);
-  printf("Func name:%s\n", name);
-  for(int i = 0; i < func_count; i ++) {
-    if(strcmp(funcs[i], name) == 0) {
-      printf("Dup name:%s\n", name);
-      free(name);
-      return;
-    }
-  }
-  funcs[func_count ++] = name;
-  // TODO: compile func
+FILE * create_code_file(const char * path) {
+  FILE *p = fopen(path, "w+");
+  return p;
 }
-void create_src(char * line, char * code_template) {
+void create_src(char * src_path, char * line, char * code_template) {
   sprintf(code, code_template, line);
-  FILE * p = create_code_file(MAIN_SRC_PATH);
+  FILE * p = create_code_file(src_path);
   fprintf(p, "%s\n", code);
   fclose(p);
 }
@@ -81,6 +70,25 @@ int compile_src(char ** compile_cmd) {
   }
   return wstatus;
 }
+void handle_func(char  * line) {
+  printf("Func:%s\n", line);
+  char * name = parse_func_name(line);
+  printf("Func name:%s\n", name);
+  for(int i = 0; i < func_count; i ++) {
+    if(strcmp(funcs[i], name) == 0) {
+      printf("Dup name:%s\n", name);
+      free(name);
+      return;
+    }
+  }
+  funcs[func_count ++] = name;
+  char * code_template = "%s\n";
+  char file_name[64];
+  sprintf(file_name, LIB_SRC_PATH_TEMP, name);
+  create_src(file_name, line, code_template);
+  char * main_argv[16] = {"gcc", file_name, "-fPIC", "-shared", "-o", LIB_TARGET_PATH, NULL};
+  compile_src(main_argv);
+}
 void run() {
   int pid = fork();
   char * main_argv[2] = {MAIN_TARGET_PATH, NULL};
@@ -94,7 +102,7 @@ void run() {
 void handle_expr(char * line) {
   printf("Expr:%s\n", line);
   char * code_temple = "#include<stdio.h>\n int main(){int ret = %s; printf(\"%%d\\n\", ret);return 0;}"; 
-  create_src(line, code_temple);
+  create_src(MAIN_SRC_PATH, line, code_temple);
   char * main_argv[16] = {"gcc", MAIN_SRC_PATH, "-o", MAIN_TARGET_PATH, NULL};
   int status = compile_src(main_argv);
   if(status == 0)
