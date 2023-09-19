@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -93,7 +94,8 @@ void run() {
   int pid = fork();
   char * main_argv[2] = {MAIN_TARGET_PATH, NULL};
   if(pid == 0) {
-    execvp(main_argv[0], main_argv);
+    char * env[2] = {"LD_LIBRARY_PATH=/tmp", NULL};
+    execvpe(main_argv[0], main_argv, env);
   } else {
     int wstatus;
     wait(&wstatus);
