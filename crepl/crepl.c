@@ -15,7 +15,8 @@ char * MAIN_TARGET_PATH = "/tmp/crepl_main.out";
 char * LIB_SRC_PATH_TEMP = "/tmp/crepl_lib_%s.c";
 char * LIB_TARGET_PATH = "/tmp/libcrepl_lab.so";
 
-static char * funcs[32];
+#define FUNC_COUNT 32
+static char * funcs[FUNC_COUNT];
 static int func_count = 0;
 int parse_line(char * line) {
   if(strlen(line) > 3 && line[0] == 'i' && line[1] == 'n' && line[2] == 't') {
@@ -71,6 +72,11 @@ int compile_src(char ** compile_cmd) {
   }
   return wstatus;
 }
+char * generate_func_file_name(char * func_name) {
+  char * file_name = malloc(64);
+  sprintf(file_name, LIB_SRC_PATH_TEMP, func_name);
+  return file_name;
+}
 void handle_func(char  * line) {
   printf("Func:%s\n", line);
   char * name = parse_func_name(line);
@@ -84,11 +90,20 @@ void handle_func(char  * line) {
   }
   funcs[func_count ++] = name;
   char * code_template = "%s\n";
-  char file_name[64];
-  sprintf(file_name, LIB_SRC_PATH_TEMP, name);
+  char * file_name = generate_func_file_name(name);
   create_src(file_name, line, code_template);
-  char * main_argv[16] = {"gcc", file_name, "-fPIC", "-shared", "-o", LIB_TARGET_PATH, NULL};
+  char * main_argv[FUNC_COUNT + 10] = {"gcc"};
+  for(int i = 0; i < func_count; i ++) {
+    main_argv[i + 1] = generate_func_file_name(funcs[i]);
+  }
+  char * others[10] = {"-fPIC", "-shared", "-o", LIB_TARGET_PATH, NULL};
+  for(int i = 0; i < 10; i ++) {
+    main_argv[i + func_count + 1] = others[i];
+  }
+  for(int i = 0; main_argv[i] != NULL; i ++)
+    printf("main_argv %d:%s\n", i, main_argv[i]);
   compile_src(main_argv);
+  // TODO: free file name
 }
 void run() {
   int pid = fork();
