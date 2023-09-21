@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <stdlib.h>
+#include <dlfcn.h>
 
 enum CommandType {
   FUNC,
@@ -11,7 +12,6 @@ enum CommandType {
 };
 static char code[1024];
 char * MAIN_SRC_PATH = "/tmp/crepl_main.c";
-char * MAIN_TARGET_PATH = "/tmp/crepl_main.out";
 char * LIB_SRC_PATH_TEMP = "/tmp/crepl_lib_%s.c";
 char * LIB_TARGET_PATH = "/tmp/libcrepl_lab.so";
 
@@ -92,11 +92,16 @@ void handle_func(char  * line) {
   char * code_template = "%s\n";
   char * file_name = generate_func_file_name(name);
   create_src(file_name, line, code_template);
+}
+void handle_expr(char * line) {
+  printf("Expr:%s\n", line);
+  char * code_temple = "int __expr_wrapper(){int ret = %s; return ret;}"; 
+  create_src(MAIN_SRC_PATH, line, code_temple);
   char * main_argv[FUNC_COUNT + 10] = {"gcc"};
   for(int i = 0; i < func_count; i ++) {
     main_argv[i + 1] = generate_func_file_name(funcs[i]);
   }
-  char * others[10] = {"-fPIC", "-shared", "-o", LIB_TARGET_PATH, NULL};
+  char * others[10] = {MAIN_SRC_PATH,"-fPIC", "-shared", "-o", LIB_TARGET_PATH, NULL};
   for(int i = 0; i < 10; i ++) {
     main_argv[i + func_count + 1] = others[i];
   }
@@ -104,26 +109,24 @@ void handle_func(char  * line) {
     printf("main_argv %d:%s\n", i, main_argv[i]);
   compile_src(main_argv);
   // TODO: free file name
-}
-void run() {
-  int pid = fork();
-  char * main_argv[2] = {MAIN_TARGET_PATH, NULL};
-  if(pid == 0) {
-    char * env[2] = {"LD_LIBRARY_PATH=/tmp", NULL};
-    execvpe(main_argv[0], main_argv, env);
-  } else {
-    int wstatus;
-    wait(&wstatus);
+  void *handle;
+  int (*expr)();
+  char *error;
+  handle = dlopen(LIB_TARGET_PATH, RTLD_LAZY);
+  if (!handle) {
+      fprintf(stderr, "%s\n", dlerror());
+      exit(EXIT_FAILURE);
   }
-}
-void handle_expr(char * line) {
-  printf("Expr:%s\n", line);
-  char * code_temple = "#include<stdio.h>\n int main(){int ret = %s; printf(\"%%d\\n\", ret);return 0;}"; 
-  create_src(MAIN_SRC_PATH, line, code_temple);
-  char * main_argv[16] = {"gcc", MAIN_SRC_PATH, "-L/tmp", "-lcrepl_lab", "-o", MAIN_TARGET_PATH, NULL};
-  int status = compile_src(main_argv);
-  if(status == 0)
-    run();
+  dlerror();    /* Clear any existing error */
+
+  expr = (int (*)()) dlsym(handle, "__expr_wrapper");
+  error = dlerror();
+  if (error != NULL) {
+      fprintf(stderr, "%s\n", error);
+      exit(EXIT_FAILURE);
+  }
+  printf("%d\n", (*expr)(.0));
+  dlclose(handle);
 }
 int main(int argc, char *argv[]) {
   static char line[4096];
