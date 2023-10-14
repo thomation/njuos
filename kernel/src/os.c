@@ -19,7 +19,7 @@ static void os_init() {
   pmm->init();
   kmt->init();
   kmt->spin_init(&trap_lock, "trap");
-  dev->init();
+  // dev->init();
 }
 #if TEST_ALLOC
 #define TEST_SIZE 100
