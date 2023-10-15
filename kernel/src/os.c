@@ -20,6 +20,7 @@ static void os_init() {
   kmt->init();
   kmt->spin_init(&trap_lock, "trap");
   // dev->init();
+  uproc->init();
 }
 #if TEST_ALLOC
 #define TEST_SIZE 100
