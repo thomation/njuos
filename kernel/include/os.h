@@ -17,19 +17,15 @@ typedef struct task_node {
   struct task_node * next;
 } task_node_t;
 struct task {
-  union {
-    struct {
-      const char *name;
-      int id;
-      enum task_status status;
-      int cpu;
-      struct task *next;
-      void    (*entry)(void *);
-      Context  context;
-      AddrSpace as;
-    };
-    uint8_t stack[THREAD_STACK_SIZE];
-  };
+  const char *name;
+  int id;
+  enum task_status status;
+  int cpu;
+  struct task *next;
+  void    (*entry)(void *);
+  Context  context;
+  AddrSpace as;
+  uint8_t stack[THREAD_STACK_SIZE];
 };
 
 struct spinlock {

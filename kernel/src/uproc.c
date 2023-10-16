@@ -14,6 +14,7 @@ static void vme_free(void * content) {
     pmm->free(content);
 }
 static int create(task_t * task, char* name, int cpu, enum task_status status) {
+  protect(&task->as);
   task->name = name;
   task->id = next_uproc_id ++;
   task->status = status;
@@ -22,8 +23,7 @@ static int create(task_t * task, char* name, int cpu, enum task_status status) {
   void * entry = task->as.area.start;
   task->entry = entry;
   Area stack  = (Area) { task->stack, task->stack + THREAD_STACK_SIZE};
-  protect(&task->as);
-  printf("uproc create as pgsize:%d", task->as.pgsize);
+  printf("uproc create as pgsize:%d, start:%p\n", task->as.pgsize, task->as.area.start);
   task->context = *ucontext(&task->as, stack, entry);
   append_task(task);
   printf("uproc task %d, context %p, stack (%p, %p)\n", task->id, task->context, task->stack, task->stack + THREAD_STACK_SIZE);
