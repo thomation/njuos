@@ -1,10 +1,9 @@
 #include "ulib.h"
 
-static char * text = "Hello User!";
 int main() {
   // Example:
   // printf("pid = %d\n", getpid());
-  for(int i = 0; i < 12; i ++)
-    kputc(text[i]);
+  for(const char * s = "Hello User!"; *s; s ++)
+    kputc(*s);
   return 0;
 }
