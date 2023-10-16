@@ -1,4 +1,6 @@
 #include <os.h>
+#include <task.h>
+
 // #define __DEBUG
 #ifdef __DEBUG
 #define DEBUG(format,...) printf(""format"", ##__VA_ARGS__)  
@@ -8,17 +10,8 @@
 #define INT_MIN	(-INT_MAX - 1)
 #define INT_MAX	32767
 static int next_thread_id;
-task_t * task_list_head;
-task_t * task_list_tail;
 
-static task_t * get_current_task() {
-  int cpu = cpu_current();
-  for(task_t * p = task_list_head; p; p = p->next) {
-    if(p->cpu != cpu) continue;
-      return p;
-  }
-  return NULL;
-}
+
 static Context *kmt_context_save(Event ev, Context *context) {
   DEBUG("kmt_context_save cpu %d context %p >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", cpu_current(), context);
   task_t * p = get_current_task();
@@ -47,7 +40,7 @@ static Context *kmt_schedule(Event ev, Context *context) {
   }
   // search from head
   if(!next) {
-    for(task_t * p = task_list_head; p; p = p->next) {
+    for(task_t * p = get_task_list_head(); p; p = p->next) {
       if(can_schedule(p)) {
         next = p;
         DEBUG("kmt_schedule %d next is %s\n", cpu_current(), p->name);
@@ -73,11 +66,6 @@ static Context *kmt_schedule(Event ev, Context *context) {
   DEBUG("kmt_schedule cpu %d context %p <<<<<<<<<<<<<<<<<<<<<<<\n", cpu_current(), new_context);
   return new_context;
 }
-static void print_tasks() {
-  for(task_t * p = task_list_head; p; p = p->next) {
-    printf("task: id=%d, name=%s, status=%d, cpu=%d, context=%p\n", p->id, p->name, p->status, p->cpu, p->context);
-  }
-}
 
 int do_create(task_t *task, const char *name, void (*entry)(void *arg), void *arg, int cpu, enum task_status status) {
   printf("do_create task:%s, arg:%p\n", name, arg);
@@ -89,17 +77,15 @@ int do_create(task_t *task, const char *name, void (*entry)(void *arg), void *ar
   task->entry = entry;
   Area stack  = (Area) { task->stack, task->stack + THREAD_STACK_SIZE};
   task->context = kcontext(stack, task->entry, arg);
-  task_list_tail->next = task;
-  task_list_tail = task_list_tail->next;
+  append_task(task);
   printf("task %d, context %p, stack (%p, %p)\n", task->id, task->context, task->stack, task->stack + THREAD_STACK_SIZE);
   print_tasks();
   return task->id;
 }
 static void kmt_init() {
   printf("kmt init\n");
-  task_list_head = pmm->alloc(sizeof(task_t));
-  do_create(task_list_head, "Head", NULL, NULL, -1, TASK_STATUS_NONE);
-  task_list_tail = task_list_head;
+  init_task_list();
+  do_create(get_task_list_head(), "Head", NULL, NULL, -1, TASK_STATUS_NONE);
   for(int i = 0; i < cpu_count(); i ++) {
     do_create(pmm->alloc(sizeof(task_t)), "Idle", NULL, NULL, i, TASK_STATUS_READY);
   }
