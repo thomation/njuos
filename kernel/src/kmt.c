@@ -1,7 +1,7 @@
 #include <os.h>
 #include <task.h>
 
-// #define __DEBUG
+#define __DEBUG
 #ifdef __DEBUG
 #define DEBUG(format,...) printf(""format"", ##__VA_ARGS__)  
 #else
@@ -16,7 +16,7 @@ static Context *kmt_context_save(Event ev, Context *context) {
   DEBUG("kmt_context_save cpu %d context %p >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", cpu_current(), context);
   task_t * p = get_current_task();
   assert(p); // There is idle task that cannot be blocked
-  p->context = context;
+  p->context = *context;
   DEBUG("kmt_context_save %d current is %s, status %d\n", cpu_current(), p->name, p->status);
   DEBUG("kmt_context_save %d <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", cpu_current());
   return NULL;
@@ -55,7 +55,7 @@ static Context *kmt_schedule(Event ev, Context *context) {
     current->cpu = -1;
     next->status = TASK_STATUS_RUNNING;
     next->cpu = cpu_current();
-    new_context = next->context;
+    new_context = &next->context;
   } else if(!next) {
     // schedule current again
     assert(current->status == TASK_STATUS_RUNNING);
@@ -76,9 +76,9 @@ int do_create(task_t *task, const char *name, void (*entry)(void *arg), void *ar
   task->next = NULL;
   task->entry = entry;
   Area stack  = (Area) { task->stack, task->stack + THREAD_STACK_SIZE};
-  task->context = kcontext(stack, task->entry, arg);
+  task->context = *kcontext(stack, task->entry, arg);
   append_task(task);
-  printf("task %d, context %p, stack (%p, %p)\n", task->id, task->context, task->stack, task->stack + THREAD_STACK_SIZE);
+  printf("kernel task %d, context %p, stack (%p, %p)\n", task->id, task->context, task->stack, task->stack + THREAD_STACK_SIZE);
   print_tasks();
   return task->id;
 }

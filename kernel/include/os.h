@@ -24,8 +24,9 @@ struct task {
       enum task_status status;
       int cpu;
       struct task *next;
-      void      (*entry)(void *);
-      Context    *context;
+      void    (*entry)(void *);
+      Context  context;
+      AddrSpace as;
     };
     uint8_t stack[THREAD_STACK_SIZE];
   };

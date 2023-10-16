@@ -55,9 +55,19 @@ static void os_run() {
   }
 }
 static Context *os_trap(Event ev, Context *ctx) {
+  printf("os trap:%d %s\n", ev.event, ev.msg);
   panic_on(ev.event == EVENT_ERROR, ev.msg);
   Context *next = NULL;
   kmt->spin_lock(&trap_lock);
+  switch(ev.event) {
+    case EVENT_PAGEFAULT:
+    printf("page fault\n");
+    break;
+    case EVENT_SYSCALL:
+    break;
+    default:
+    
+  }
   for(event_handler_node_t *h = event_handler_head; h; h = h->next) {
     if (h->event == EVENT_NULL || h->event == ev.event) {
       Context *r = h->handler(ev, ctx);
