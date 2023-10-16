@@ -47,7 +47,12 @@ int int_to_str(int n, char * str)
   str[j] = '\0';
   return j;
 }
+
+#if __x86_64__
+int hex_to_str(unsigned long n, char * str)
+#else
 int hex_to_str(unsigned int n, char * str)
+#endif
 {
   char tmp[MAX_INT_STR_LEN];
   int i = 0;
@@ -133,7 +138,11 @@ int vsprintf(char* out, const char *fmt, va_list ap) {
         case 'p':
         {
           char tmp[32];
+#if __x86_64__
+          long d = va_arg(ap, long);
+#else
           int d = va_arg(ap, int);
+#endif
           int len = hex_to_str(d, tmp);
           int n = handle_number(out, tmp, len, prefix, pi);
           count += n; 
