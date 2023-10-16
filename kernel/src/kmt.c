@@ -84,8 +84,8 @@ int do_create(task_t *task, const char *name, void (*entry)(void *arg), void *ar
 }
 static void kmt_init() {
   printf("kmt init\n");
-  init_task_list();
-  do_create(get_task_list_head(), "Head", NULL, NULL, -1, TASK_STATUS_NONE);
+  task_t * head = pmm->alloc(sizeof(task_t));
+  do_create(head, "Head", NULL, NULL, -1, TASK_STATUS_NONE);
   for(int i = 0; i < cpu_count(); i ++) {
     do_create(pmm->alloc(sizeof(task_t)), "Idle", NULL, NULL, i, TASK_STATUS_READY);
   }

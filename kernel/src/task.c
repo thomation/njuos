@@ -6,12 +6,11 @@ static task_t * task_list_head;
 task_t * get_task_list_head() {
     return task_list_head;
 }
-void init_task_list() {
-  task_list_head = pmm->alloc(sizeof(task_t));
-  task_list_head->name = "Head";
-  task_list_head->next = NULL;
-}
 void append_task(task_t * task) { 
+  if(task_list_head == NULL) {
+    task_list_head = task;
+    task_list_head->next = NULL;
+  }
   task_t * p = task_list_head;
   while(p->next != NULL)
     p = p->next;
