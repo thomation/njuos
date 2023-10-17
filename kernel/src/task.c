@@ -19,7 +19,7 @@ void append_task(task_t * task) {
 }
 void print_tasks() {
   for(task_t * p = task_list_head; p; p = p->next) {
-    printf("task: id=%d, name=%s, status=%d, cpu=%d, context=%p\n", p->id, p->name, p->status, p->cpu, p->context);
+    printf("task: id=%d, name=%s, status=%d, cpu=%d, context=%p\n", p->id, p->name, p->status, p->cpu, &p->context);
   }
 }
 

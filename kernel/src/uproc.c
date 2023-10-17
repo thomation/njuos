@@ -5,10 +5,12 @@
 #include "initcode.inc"
 static int next_uproc_id;
 static void * vme_alloc(int size) {
-  printf("vme_alloc size %d\n", size);
-  void * ret = pmm->alloc(size);
-  printf("vme_alloc addr %p\n", ret);
-  return ret;
+  // printf("vme_alloc size %d\n", size);
+  uintptr_t ret = (uintptr_t)pmm->alloc(size * 2);
+  // printf("vme_alloc raw addr %p\n", ret);
+  ret = ret & ~(0xfff);
+  // printf("vme_alloc new addr %p\n", ret);
+  return (void*)ret;
 }
 static void vme_free(void * content) {
     pmm->free(content);
@@ -23,10 +25,11 @@ static int create(task_t * task, char* name, int cpu, enum task_status status) {
   void * entry = task->as.area.start;
   task->entry = entry;
   Area stack  = (Area) { task->stack, task->stack + THREAD_STACK_SIZE};
-  printf("uproc create as pgsize:%d, start:%p\n", task->as.pgsize, task->as.area.start);
+  printf("uproc stack %p, %p\n", stack.start, stack.end);
+  printf("uproc create as pgsize:%d, start:%p, ptr:%p\n", task->as.pgsize, task->as.area.start, task->as.ptr);
   task->context = *ucontext(&task->as, stack, entry);
+  printf("uproc task context:%p, cr3 %p, rsp0:%p\n", &task->context, task->context.cr3, task->context.rsp0);
   append_task(task);
-  printf("uproc task %d, context %p, stack (%p, %p)\n", task->id, task->context, task->stack, task->stack + THREAD_STACK_SIZE);
   print_tasks();
   return task->id;
 }

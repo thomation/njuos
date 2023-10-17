@@ -20,7 +20,7 @@ static void os_init() {
   kmt->init();
   kmt->spin_init(&trap_lock, "trap");
   // dev->init();
-  // uproc->init();
+  uproc->init();
 }
 #if TEST_ALLOC
 #define TEST_SIZE 100
@@ -77,6 +77,7 @@ static Context *os_trap(Event ev, Context *ctx) {
   }
   kmt->spin_unlock(&trap_lock);
   panic_on(!next, "returning NULL context");
+  printf("os_trap next:%p\n", next);
   return next;
 }
 static void os_on_irq(int seq, int event, handler_t handler) {
