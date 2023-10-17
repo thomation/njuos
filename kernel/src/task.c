@@ -27,7 +27,16 @@ task_t * get_current_task() {
   int cpu = cpu_current();
   for(task_t * p = task_list_head; p; p = p->next) {
     if(p->cpu != cpu) continue;
-      return p;
+    return p;
+  }
+  return NULL;
+}
+task_t * get_current_running_task() {
+  int cpu = cpu_current();
+  for(task_t * p = task_list_head; p; p = p->next) {
+    if(p->cpu != cpu) continue;
+    if(p->status != TASK_STATUS_RUNNING ) continue;
+    return p;
   }
   return NULL;
 }

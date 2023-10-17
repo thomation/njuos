@@ -1,6 +1,12 @@
 #include <common.h>
 #include <os.h>
 
+#define __DEBUG
+#ifdef __DEBUG
+#define DEBUG(format,...) printf(""format"", ##__VA_ARGS__)  
+#else
+#define DEBUG(...)
+#endif
 typedef struct _event_handler_node_t {
   int seq;
   int event;
@@ -55,19 +61,10 @@ static void os_run() {
   }
 }
 static Context *os_trap(Event ev, Context *ctx) {
-  // printf("os trap:%d %s\n", ev.event, ev.msg);
+  DEBUG("os trap:%d %s\n", ev.event, ev.msg);
   panic_on(ev.event == EVENT_ERROR, ev.msg);
   Context *next = NULL;
   kmt->spin_lock(&trap_lock);
-  switch(ev.event) {
-    case EVENT_PAGEFAULT:
-    printf("page fault\n");
-    break;
-    case EVENT_SYSCALL:
-    break;
-    default:
-    
-  }
   for(event_handler_node_t *h = event_handler_head; h; h = h->next) {
     if (h->event == EVENT_NULL || h->event == ev.event) {
       Context *r = h->handler(ev, ctx);
@@ -77,11 +74,11 @@ static Context *os_trap(Event ev, Context *ctx) {
   }
   kmt->spin_unlock(&trap_lock);
   panic_on(!next, "returning NULL context");
-  printf("os_trap next:%p\n", next);
+  DEBUG("os_trap next:%p\n", next);
   return next;
 }
 static void os_on_irq(int seq, int event, handler_t handler) {
-  // printf("os_on_irq %d \n", seq);
+  DEBUG("os_on_irq %d \n", seq);
   event_handler_node_t * new_node = pmm->alloc(sizeof(event_handler_node_t));
   assert(new_node);
   new_node->seq = seq;
@@ -89,24 +86,32 @@ static void os_on_irq(int seq, int event, handler_t handler) {
   new_node->handler = handler;
   new_node->next = NULL;
   if(event_handler_head == NULL) {
-    // printf("os_on_irq set head\n");
+    DEBUG("os_on_irq set head\n");
     event_handler_head = new_node;
   } else {
     event_handler_node_t * p = event_handler_head;
     while(p && p->seq < new_node->seq)
       p = p->next;
-    // printf("os_on_irq find node %p of seq >= %d \n", p, seq);
+    DEBUG("os_on_irq find node %p of seq >= %d \n", p, seq);
     if(p) {
-      new_node->next = p->next;
-      p->next = new_node;
+      event_handler_node_t * q = event_handler_head;
+      while(q && q->next != p)
+        q = q->next;
+      q->next = new_node;
+      new_node->next = p;
     } else {
-      // printf("os_on_irq append to the tail\n");
+      DEBUG("os_on_irq append to the tail\n");
       event_handler_node_t * q = event_handler_head;
       while(q->next)
         q = q->next;
       q->next = new_node;
     }
   }
+  DEBUG("os_on_irq print list\n");
+  for(event_handler_node_t * p = event_handler_head; p; p = p -> next) {
+    DEBUG("%d,%d\n", p->seq, p->event);
+  }
+  DEBUG("os_on_irq end\n");
 }
 MODULE_DEF(os) = {
   .init = os_init,

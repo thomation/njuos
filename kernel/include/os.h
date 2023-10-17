@@ -26,6 +26,9 @@ struct task {
   Context  context;
   AddrSpace as;
   uint8_t stack[THREAD_STACK_SIZE];
+  int np;
+  void * pa[64];
+  void * va[64];
 };
 
 struct spinlock {
