@@ -48,6 +48,10 @@ static Context *uproc_pagefault(Event ev, Context *context) {
   printf("uproc_pagefalut current task:%s\n", task->name);
   void * pa = vme_alloc(task->as.pgsize);
   void * va = (void*)(ev.ref & ~(task->as.pgsize - 1));
+  if(va == task->as.area.start) {
+    printf("uproc_pagefalut load code\n");
+    memcpy(pa, _init, _init_len);
+  }
   pgmap(task, va, pa);
   return NULL;
 }
