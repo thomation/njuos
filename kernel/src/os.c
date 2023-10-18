@@ -1,7 +1,7 @@
 #include <common.h>
 #include <os.h>
 
-#define __DEBUG
+// #define __DEBUG
 #ifdef __DEBUG
 #define DEBUG(format,...) printf(""format"", ##__VA_ARGS__)  
 #else

@@ -4,7 +4,7 @@
 
 #include "initcode.inc"
 
-#define __DEBUG
+// #define __DEBUG
 #ifdef __DEBUG
 #define DEBUG(format,...) printf(""format"", ##__VA_ARGS__)  
 #else
@@ -30,6 +30,7 @@ static int create(task_t * task, char* name, int cpu, enum task_status status) {
   task->status = status;
   task->cpu = cpu;
   task->next = NULL;
+  task->np = 0;
   void * entry = task->as.area.start;
   task->entry = entry;
   Area stack  = (Area) { task->stack, task->stack + THREAD_STACK_SIZE};
@@ -68,8 +69,29 @@ static Context * uproc_syscall(Event ev, Context * context) {
   task_t * task = get_current_running_task();
   DEBUG("uproc syscall: %d\n", no);
   switch(no) {
-    case SYS_kputc:   
+    case SYS_kputc:
       putch(context->GPR1);
+      break;
+    case SYS_fork:
+      task_t * child = vme_alloc(sizeof(task_t));
+      int pid = create(child, "child", cpu_current(), TASK_STATUS_READY);
+      uintptr_t rsp0 = child->context.rsp0;
+      void * cr3 = child->context.cr3;
+      child->context = *context;
+      child->context.rsp0 = rsp0;
+      child->context.cr3 = cr3;
+      child->context.GPRx = 0;
+      DEBUG("uproc fork: pid: %d, cr3 %p -> %p, rsp0 %p -> %p\n", pid, context->cr3, cr3, context->rsp0, rsp0);
+      context->GPRx = pid;
+      // TODO: copy on write
+      for(int i = 0; i < task->np; i ++) {
+        int sz = task->as.pgsize;
+        void * va = task->va[i];
+        void * pa = task->pa[i];
+        void * npa = vme_alloc(sz);
+        memcpy(npa, pa, sz);
+        pgmap(child, va, npa);
+      }
       break;
     case SYS_exit:
       task->status = TASK_STATUS_DEATH;
@@ -81,8 +103,8 @@ static Context * uproc_syscall(Event ev, Context * context) {
 static void uproc_init() {
   printf("uproc_init \n");
   vme_init(vme_alloc, vme_free);
-  task_t * task = pmm->alloc(sizeof(task_t));
-  create(task, "init", 0, TASK_STATUS_READY);
+  task_t * task = vme_alloc(sizeof(task_t));
+  create(task, "init", cpu_current(), TASK_STATUS_READY);
   os->on_irq(10, EVENT_PAGEFAULT, uproc_pagefault);
   os->on_irq(20, EVENT_SYSCALL, uproc_syscall);
 }
