@@ -46,6 +46,7 @@ struct fat32hdr {
 
 
 void *map_disk(const char *fname);
+void travel_data(uint8_t * data_start, int cluster_count, int cluster_sz); 
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
@@ -56,12 +57,25 @@ int main(int argc, char *argv[]) {
   setbuf(stdout, NULL);
 
   assert(sizeof(struct fat32hdr) == 512); // defensive
-
   // map disk image to memory
   struct fat32hdr *hdr = map_disk(argv[1]);
+  assert(hdr->BS_FilSysType[3] == '3' && hdr->BS_FilSysType[4] == '2');
 
   // TODO: frecov
-
+  printf("bytes per sec:%d\n", hdr->BPB_BytsPerSec);
+  printf("Reserved sec %d\n", hdr->BPB_RsvdSecCnt);
+  printf("Fat num:%d\n", hdr->BPB_NumFATs);
+  printf("Fat sec:%d\n", hdr->BPB_FATSz32);
+  printf("total sect:%d\n", hdr->BPB_TotSec32);
+  printf("root clus:%d\n", hdr->BPB_RootClus);
+  // TODO: computer the start address of dir
+  int special_sec = hdr->BPB_RsvdSecCnt + hdr->BPB_FATSz32 * hdr->BPB_NumFATs;
+  int data_sec = hdr->BPB_TotSec32 -special_sec;
+  int data_cluster = data_sec / hdr->BPB_SecPerClus;
+  printf("data sec count:%d, cluster:%d\n", data_sec, data_cluster);
+  int cluster_sz = hdr->BPB_BytsPerSec * hdr->BPB_SecPerClus;
+  printf("cluster size:%d\n", cluster_sz);
+  travel_data((uint8_t*)(hdr + special_sec), data_cluster, cluster_sz);
   // file system traversal
   munmap(hdr, hdr->BPB_TotSec32 * hdr->BPB_BytsPerSec);
 }
@@ -99,4 +113,15 @@ release:
     close(fd);
   }
   exit(1);
+}
+void travel_data(uint8_t * data_start, int cluster_count, int cluster_sz) {
+  int sum = 0;
+  for(int i = 0; i < cluster_count; i ++) {
+    uint8_t * cur = data_start + i * cluster_sz;
+    if(cur[0] == 'B' && cur[1] == 'M') {
+      printf("%d is bmp head cluster\n", i);
+      sum ++;
+    }
+  }
+  printf("bmp head cluster is %d\n", sum);
 }
