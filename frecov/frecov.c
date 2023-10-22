@@ -10,7 +10,12 @@
 typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
-
+#define  ATTR_READ_ONLY (0x01)
+#define ATTR_HIDDEN (0x02) 
+#define ATTR_SYSTEM (0x04)
+#define ATTR_VOLUME_ID (0x08)
+#define ATTR_DIRECTORY (0x10)
+#define ATTR_ARCHIVE (0x20)
 // Copied from the manual
 struct fat32hdr {
   u8  BS_jmpBoot[3];
@@ -44,9 +49,23 @@ struct fat32hdr {
   u16 Signature_word;
 } __attribute__((packed));
 
+typedef struct _direntry {
+  u8  DIR__Name[11];
+  u8  DIR_Attr;
+  u8  DIR_NTRes;
+  u8  DIR_CrtTimeTenth;
+  u16 DIR_CrtTime;
+  u16 DIR_CrtDate;
+  u16 DIR_LstAccDate;
+  u16 DIR_FstClusHI;
+  u16 DIR_WrtTime;
+  u16 DIR_WrtDate;
+  u16 DIR_FstClusLO;
+  u32 DIR_FileSize;
+} __attribute__((packed)) direntry;
 
 void *map_disk(const char *fname);
-void travel_data(uint8_t * data_start, int cluster_count, int cluster_sz); 
+void travel_data(uint8_t * data_start, int cluster_count, int cluster_sz, int root_cluster); 
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
@@ -57,6 +76,7 @@ int main(int argc, char *argv[]) {
   setbuf(stdout, NULL);
 
   assert(sizeof(struct fat32hdr) == 512); // defensive
+  assert(sizeof(direntry) == 32);
   // map disk image to memory
   struct fat32hdr *hdr = map_disk(argv[1]);
   assert(hdr->BS_FilSysType[3] == '3' && hdr->BS_FilSysType[4] == '2');
@@ -75,7 +95,7 @@ int main(int argc, char *argv[]) {
   printf("data sec count:%d, cluster:%d\n", data_sec, data_cluster);
   int cluster_sz = hdr->BPB_BytsPerSec * hdr->BPB_SecPerClus;
   printf("cluster size:%d\n", cluster_sz);
-  travel_data((uint8_t*)(hdr + special_sec), data_cluster, cluster_sz);
+  travel_data((uint8_t*)(hdr + special_sec), data_cluster, cluster_sz, hdr->BPB_RootClus);
   // file system traversal
   munmap(hdr, hdr->BPB_TotSec32 * hdr->BPB_BytsPerSec);
 }
@@ -114,14 +134,37 @@ release:
   }
   exit(1);
 }
-void travel_data(uint8_t * data_start, int cluster_count, int cluster_sz) {
-  int sum = 0;
-  for(int i = 0; i < cluster_count; i ++) {
-    uint8_t * cur = data_start + i * cluster_sz;
-    if(cur[0] == 'B' && cur[1] == 'M') {
-      printf("%d is bmp head cluster\n", i);
-      sum ++;
-    }
+static void print_dir_name(direntry * dir) {
+  for(int i = 0; i < 11; i ++) {
+    printf("%c", dir->DIR__Name[i]);
   }
-  printf("bmp head cluster is %d\n", sum);
+  printf("\n");
+}
+static int is_dir_valid(direntry * dir) {
+  return dir->DIR__Name[0] != 0x00 && dir->DIR__Name[0] != 0xe5;
+}
+void travel_data(uint8_t * data_start, int cluster_count, int cluster_sz, int root_cluster) {
+  direntry* root_dir = (direntry*)(data_start + cluster_sz * (root_cluster - 1));
+  for(int i = 0; i < cluster_sz / 32; i ++) {
+    direntry * dir = root_dir + i;
+    if(!is_dir_valid(dir))
+      continue;
+    print_dir_name(dir);
+    if(dir->DIR_Attr == ATTR_DIRECTORY) {
+      printf("Is sub dir\n");
+    } else {
+      int bmp_cluster = dir->DIR_FstClusHI << 16; 
+      bmp_cluster += dir->DIR_FstClusLO;
+      printf("bmp cluster: %d bmp size: %d\n", bmp_cluster, dir->DIR_FileSize);
+    }
+ }
+  // int sum = 0;
+  // for(int i = 0; i < cluster_count; i ++) {
+  //   uint8_t * cur = data_start + i * cluster_sz;
+  //   if(cur[0] == 'B' && cur[1] == 'M') {
+  //     printf("%d is bmp head cluster\n", i);
+  //     sum ++;
+  //   }
+  // }
+  // printf("bmp head cluster is %d\n", sum);
 }
