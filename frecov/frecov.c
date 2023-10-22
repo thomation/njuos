@@ -7,6 +7,13 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
+#define __DEBUG
+#ifdef __DEBUG
+#define DEBUG(format,...) printf(""format"", ##__VA_ARGS__)  
+#else
+#define DEBUG(...)
+#endif
+
 typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
@@ -16,6 +23,8 @@ typedef uint32_t u32;
 #define ATTR_VOLUME_ID (0x08)
 #define ATTR_DIRECTORY (0x10)
 #define ATTR_ARCHIVE (0x20)
+#define ATTR_LONG_NAME  (ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID)
+
 // Copied from the manual
 struct fat32hdr {
   u8  BS_jmpBoot[3];
@@ -63,10 +72,23 @@ typedef struct _direntry {
   u16 DIR_FstClusLO;
   u32 DIR_FileSize;
 } __attribute__((packed)) direntry;
+typedef struct _longnameentry {
+  u8  LDIR_Ord;
+  u16  LDIR_Name1[5];
+  u8  LDIR_Attr;
+  u8  LDIR_Type;
+  u8  LDIR_Chksum;
+  u16  LDIR_Name2[6];
+  u16 LDIR_FstClusLO;
+  u16 LDIR_Name3[2];
+} __attribute__((packed)) longnameentry;
 
 void *map_disk(const char *fname);
-void travel_data(uint8_t * data_start, int cluster_count, int cluster_sz, int root_cluster); 
-
+void travel_data(uint8_t * data_start); 
+static int cluster_sz;
+static int BPB_SecPerClus;
+static int data_cluster_count;
+static int BPB_RootClus;
 int main(int argc, char *argv[]) {
   if (argc < 2) {
     fprintf(stderr, "Usage: %s fs-image\n", argv[0]);
@@ -77,25 +99,28 @@ int main(int argc, char *argv[]) {
 
   assert(sizeof(struct fat32hdr) == 512); // defensive
   assert(sizeof(direntry) == 32);
+  assert(sizeof(longnameentry) == 32);
   // map disk image to memory
   struct fat32hdr *hdr = map_disk(argv[1]);
   assert(hdr->BS_FilSysType[3] == '3' && hdr->BS_FilSysType[4] == '2');
 
   // TODO: frecov
-  printf("bytes per sec:%d\n", hdr->BPB_BytsPerSec);
-  printf("Reserved sec %d\n", hdr->BPB_RsvdSecCnt);
-  printf("Fat num:%d\n", hdr->BPB_NumFATs);
-  printf("Fat sec:%d\n", hdr->BPB_FATSz32);
-  printf("total sect:%d\n", hdr->BPB_TotSec32);
-  printf("root clus:%d\n", hdr->BPB_RootClus);
+  DEBUG("bytes per sec:%d\n", hdr->BPB_BytsPerSec);
+  DEBUG("Reserved sec %d\n", hdr->BPB_RsvdSecCnt);
+  DEBUG("Fat num:%d\n", hdr->BPB_NumFATs);
+  DEBUG("Fat sec:%d\n", hdr->BPB_FATSz32);
+  DEBUG("total sect:%d\n", hdr->BPB_TotSec32);
+  DEBUG("root clus:%d\n", hdr->BPB_RootClus);
   // TODO: computer the start address of dir
   int special_sec = hdr->BPB_RsvdSecCnt + hdr->BPB_FATSz32 * hdr->BPB_NumFATs;
   int data_sec = hdr->BPB_TotSec32 -special_sec;
-  int data_cluster = data_sec / hdr->BPB_SecPerClus;
-  printf("data sec count:%d, cluster:%d\n", data_sec, data_cluster);
-  int cluster_sz = hdr->BPB_BytsPerSec * hdr->BPB_SecPerClus;
-  printf("cluster size:%d\n", cluster_sz);
-  travel_data((uint8_t*)(hdr + special_sec), data_cluster, cluster_sz, hdr->BPB_RootClus);
+  data_cluster_count = data_sec / hdr->BPB_SecPerClus;
+  DEBUG("data sec count:%d, cluster:%d\n", data_sec, data_cluster_count);
+  BPB_SecPerClus = hdr->BPB_SecPerClus;
+  cluster_sz = hdr->BPB_BytsPerSec * BPB_SecPerClus;
+  DEBUG("cluster size:%d\n", cluster_sz);
+  BPB_RootClus = hdr->BPB_RootClus;
+  travel_data((uint8_t*)(hdr + special_sec));
   // file system traversal
   munmap(hdr, hdr->BPB_TotSec32 * hdr->BPB_BytsPerSec);
 }
@@ -134,37 +159,78 @@ release:
   }
   exit(1);
 }
-static void print_dir_name(direntry * dir) {
-  for(int i = 0; i < 11; i ++) {
-    printf("%c", dir->DIR__Name[i]);
-  }
-  printf("\n");
-}
 static int is_dir_valid(direntry * dir) {
   return dir->DIR__Name[0] != 0x00 && dir->DIR__Name[0] != 0xe5;
 }
-void travel_data(uint8_t * data_start, int cluster_count, int cluster_sz, int root_cluster) {
-  direntry* root_dir = (direntry*)(data_start + cluster_sz * (root_cluster - 1));
+// TODO: return real file name
+static void print_dir_name(direntry * dir, int long_name_count) {
+  if(long_name_count == 0) {
+    for(int i = 0; i < 11; i ++) {
+      DEBUG("%c", dir->DIR__Name[i]);
+    }
+    DEBUG("\n");
+  } else {
+    int name_size = long_name_count * 13;
+    char * name = malloc(name_size + 1);
+    int name_index = 0;
+    for(int i = 0; i < long_name_count; i ++) {
+      longnameentry *name_entry = (longnameentry *)(dir - i - 1);
+      for(int i = 0; i < 5; i ++)
+        name[name_index  ++] = (char) name_entry->LDIR_Name1[i];
+      for(int i = 0; i < 6; i ++)
+        name[name_index  ++] = (char) name_entry->LDIR_Name2[i];
+      for(int i = 0; i < 2; i ++)
+        name[name_index  ++] = (char) name_entry->LDIR_Name3[i];
+    }
+    name[name_size] = '\0';
+    DEBUG("%s\n", name);
+    free(name);
+  }
+}
+// TODO: pass file size and generate file
+int handle_file(int N, uint8_t * first_data_sect) {
+  if(N < 2 || N - 2 > data_cluster_count)
+    return 0;;
+  uint8_t * cur = first_data_sect + (N - 2) * cluster_sz;
+  if(cur[0] == 'B' && cur[1] == 'M') {
+    DEBUG("It is bmp head cluster\n");
+    return 1;
+  }
+  return 0;
+}
+// TODO: find other dirs
+void travel_data(uint8_t * first_data_sect) {
+  int sum = 0;
+  direntry* root_dir = (direntry*)(first_data_sect + cluster_sz * (BPB_RootClus - 1));
+  int long_name_count = 0;
   for(int i = 0; i < cluster_sz / 32; i ++) {
     direntry * dir = root_dir + i;
     if(!is_dir_valid(dir))
       continue;
-    print_dir_name(dir);
+    DEBUG("attr:%x\n", dir->DIR_Attr);
     if(dir->DIR_Attr == ATTR_DIRECTORY) {
-      printf("Is sub dir\n");
+      long_name_count = 0;
+      DEBUG("Is sub dir\n");
+    } else if(dir->DIR_Attr == ATTR_LONG_NAME) {
+      long_name_count ++;
+      // DEBUG("Is long name %d\n", long_name_count);
     } else {
+      print_dir_name(dir, long_name_count);
+      long_name_count = 0;
       int bmp_cluster = dir->DIR_FstClusHI << 16; 
       bmp_cluster += dir->DIR_FstClusLO;
-      printf("bmp cluster: %d bmp size: %d\n", bmp_cluster, dir->DIR_FileSize);
+      DEBUG("bmp cluster: %d bmp size: %d\n", bmp_cluster, dir->DIR_FileSize);
+      if(handle_file(bmp_cluster, first_data_sect))
+        sum ++;
     }
  }
-  // int sum = 0;
-  // for(int i = 0; i < cluster_count; i ++) {
-  //   uint8_t * cur = data_start + i * cluster_sz;
+  // for(int i = 0; i < data_cluster_count; i ++) {
+  //   uint8_t * cur = first_data_sect + i * cluster_sz;
   //   if(cur[0] == 'B' && cur[1] == 'M') {
-  //     printf("%d is bmp head cluster\n", i);
+  //     int cluster_index = i + 2;
+  //     DEBUG("%d is bmp head cluster, sec:%d\n", cluster_index, cluster_index * BPB_SecPerClus);
   //     sum ++;
   //   }
   // }
-  // printf("bmp head cluster is %d\n", sum);
+  DEBUG("bmp head cluster is %d\n", sum);
 }
