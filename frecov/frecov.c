@@ -246,19 +246,41 @@ int travel_dir(direntry * root_dir, uint8_t * first_data_sect) {
  }
  return sum;
 }
-
-// TODO: find other dirs
+int contain_bmp(u8 str[], int size) {
+  for(int i = 0; i < size; i ++) {
+    if(str[i] == 'B' && i + 2 < size && str[i + 1] == 'M' && str[i + 2] == 'P')
+      return 1;
+  }
+  return 0;
+}
+int is_dir_cluster(direntry * root_dir) {
+  int sum = 0;
+  for(int i = 0; i < cluster_sz / 32; i ++) {
+    direntry * dir = root_dir + i;
+    if(!is_dir_valid(dir))
+      continue;
+    sum += contain_bmp(dir->DIR__Name, 11);
+    if(sum > 2)
+      return 1;
+  }
+  return 0;
+}
 void travel_data(uint8_t * first_data_sect) {
   int sum = 0;
-  direntry* root_dir = (direntry*)(first_data_sect + cluster_sz * (BPB_RootClus - 1));
-  sum += travel_dir(root_dir, first_data_sect);
-  // for(int i = 0; i < data_cluster_count; i ++) {
-  //   uint8_t * cur = first_data_sect + i * cluster_sz;
-  //   if(cur[0] == 'B' && cur[1] == 'M') {
-  //     int cluster_index = i + 2;
-  //     DEBUG("%d is bmp head cluster, sec:%d\n", cluster_index, cluster_index * BPB_SecPerClus);
-  //     sum ++;
-  //   }
-  // }
+  // direntry* root_dir = (direntry*)(first_data_sect + cluster_sz * (BPB_RootClus - 1));
+  // sum += travel_dir(root_dir, first_data_sect);
+  for(int i = 0; i < data_cluster_count; i ++) {
+    uint8_t * cur = first_data_sect + i * cluster_sz;
+    direntry * dir = (direntry *) cur;
+    if(is_dir_cluster(dir)) {
+      DEBUG("%d is dir\n", i);
+      sum += travel_dir(dir, first_data_sect);
+    }
+    // if(cur[0] == 'B' && cur[1] == 'M') {
+    //   int cluster_index = i + 2;
+    //   DEBUG("%d is bmp head cluster, sec:%d\n", cluster_index, cluster_index * BPB_SecPerClus);
+    //   sum ++;
+    // }
+  }
   DEBUG("bmp head cluster is %d\n", sum);
 }
