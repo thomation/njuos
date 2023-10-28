@@ -186,7 +186,17 @@ static char * parse_entry_name(direntry * dir, int long_name_count) {
     return name;
   }
 }
-// TODO: pass file size and generate file
+void compute_hash(char * name, char * path) {
+  char * cmd = malloc(strlen(path) + 10);
+  strcpy(cmd, "sha1sum ");
+  strcat(cmd, path);
+  FILE * fp = popen(cmd, "r");
+  char buf[128];
+  fscanf(fp, "%s", buf);
+  printf("%s  %s\n", buf, name);
+  pclose(fp);
+  free(cmd);
+}
 int handle_file(char * name, int N, uint8_t * first_data_sect, int size) {
   if(N < 2 || N - 2 > data_cluster_count)
     return 0;;
@@ -197,12 +207,13 @@ int handle_file(char * name, int N, uint8_t * first_data_sect, int size) {
     strcpy(path, "debug/");
     strcat(path, name);
     FILE *f = fopen(path, "w");
-    free(path);
     for(int i = 0; i < size; i ++) {
       fwrite(first + i, 1, 1, f);
     }
     fflush(f);
     fclose(f);
+    compute_hash(name, path);
+    free(path);
     return 1;
   }
   return 0;
