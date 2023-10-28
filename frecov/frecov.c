@@ -162,13 +162,13 @@ release:
 static int is_dir_valid(direntry * dir) {
   return dir->DIR__Name[0] != 0x00 && dir->DIR__Name[0] != 0xe5;
 }
-// TODO: return real file name
-static void print_dir_name(direntry * dir, int long_name_count) {
+static char * parse_entry_name(direntry * dir, int long_name_count) {
   if(long_name_count == 0) {
-    for(int i = 0; i < 11; i ++) {
-      DEBUG("%c", dir->DIR__Name[i]);
-    }
-    DEBUG("\n");
+    // for(int i = 0; i < 11; i ++) {
+    //   DEBUG("%c", dir->DIR__Name[i]);
+    // }
+    // DEBUG("\n");
+    return NULL;
   } else {
     int name_size = long_name_count * 13;
     char * name = malloc(name_size + 1);
@@ -183,17 +183,22 @@ static void print_dir_name(direntry * dir, int long_name_count) {
         name[name_index  ++] = (char) name_entry->LDIR_Name3[i];
     }
     name[name_size] = '\0';
-    DEBUG("%s\n", name);
-    free(name);
+    return name;
   }
 }
 // TODO: pass file size and generate file
-int handle_file(int N, uint8_t * first_data_sect) {
+int handle_file(char * name, int N, uint8_t * first_data_sect, int size) {
   if(N < 2 || N - 2 > data_cluster_count)
     return 0;;
-  uint8_t * cur = first_data_sect + (N - 2) * cluster_sz;
-  if(cur[0] == 'B' && cur[1] == 'M') {
+  uint8_t * first = first_data_sect + (N - 2) * cluster_sz;
+  if(first[0] == 'B' && first[1] == 'M') {
     DEBUG("It is bmp head cluster\n");
+    FILE *f = fopen(name, "w");
+    for(int i = 0; i < size; i ++) {
+      fwrite(first + i, 1, 1, f);
+    }
+    fflush(f);
+    fclose(f);
     return 1;
   }
   return 0;
@@ -215,13 +220,15 @@ void travel_data(uint8_t * first_data_sect) {
       long_name_count ++;
       // DEBUG("Is long name %d\n", long_name_count);
     } else {
-      print_dir_name(dir, long_name_count);
+      char * name = parse_entry_name(dir, long_name_count);
+      DEBUG("%s\n", name);
       long_name_count = 0;
       int bmp_cluster = dir->DIR_FstClusHI << 16; 
       bmp_cluster += dir->DIR_FstClusLO;
       DEBUG("bmp cluster: %d bmp size: %d\n", bmp_cluster, dir->DIR_FileSize);
-      if(handle_file(bmp_cluster, first_data_sect))
+      if(handle_file(name, bmp_cluster, first_data_sect, dir->DIR_FileSize))
         sum ++;
+      free(name);
     }
  }
   // for(int i = 0; i < data_cluster_count; i ++) {
