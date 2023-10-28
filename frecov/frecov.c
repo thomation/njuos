@@ -218,11 +218,9 @@ int handle_file(char * name, int N, uint8_t * first_data_sect, int size) {
   }
   return 0;
 }
-// TODO: find other dirs
-void travel_data(uint8_t * first_data_sect) {
-  int sum = 0;
-  direntry* root_dir = (direntry*)(first_data_sect + cluster_sz * (BPB_RootClus - 1));
+int travel_dir(direntry * root_dir, uint8_t * first_data_sect) {
   int long_name_count = 0;
+  int sum = 0;
   for(int i = 0; i < cluster_sz / 32; i ++) {
     direntry * dir = root_dir + i;
     if(!is_dir_valid(dir))
@@ -246,6 +244,14 @@ void travel_data(uint8_t * first_data_sect) {
       free(name);
     }
  }
+ return sum;
+}
+
+// TODO: find other dirs
+void travel_data(uint8_t * first_data_sect) {
+  int sum = 0;
+  direntry* root_dir = (direntry*)(first_data_sect + cluster_sz * (BPB_RootClus - 1));
+  sum += travel_dir(root_dir, first_data_sect);
   // for(int i = 0; i < data_cluster_count; i ++) {
   //   uint8_t * cur = first_data_sect + i * cluster_sz;
   //   if(cur[0] == 'B' && cur[1] == 'M') {
