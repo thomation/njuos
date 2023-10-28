@@ -9,7 +9,7 @@
 
 #define __DEBUG
 #ifdef __DEBUG
-#define DEBUG(format,...) printf(""format"", ##__VA_ARGS__)  
+#define DEBUG(format,...) fprintf(stderr, ""format"", ##__VA_ARGS__)  
 #else
 #define DEBUG(...)
 #endif
@@ -193,7 +193,11 @@ int handle_file(char * name, int N, uint8_t * first_data_sect, int size) {
   uint8_t * first = first_data_sect + (N - 2) * cluster_sz;
   if(first[0] == 'B' && first[1] == 'M') {
     DEBUG("It is bmp head cluster\n");
-    FILE *f = fopen(name, "w");
+    char * path = malloc(strlen(name) + 10);
+    strcpy(path, "debug/");
+    strcat(path, name);
+    FILE *f = fopen(path, "w");
+    free(path);
     for(int i = 0; i < size; i ++) {
       fwrite(first + i, 1, 1, f);
     }
